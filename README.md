@@ -18,6 +18,11 @@ about basic physics and chemistry fundamentals
 
 ---------------
 
+FIGMA PERSONAS: https://www.figma.com/design/7FzzH3n66YKb1FPM4prG6l/Physics-Sim-Personas?node-id=11-176&t=SuTJ6pSWSGlm0TZl-0
+FIGMA UI: https://www.figma.com/make/xS6UxVHHr78p1nfaqF6TAL/Sandbox-Physics-Game?t=DyWKRAVRFOV7XMHe-1 
+
+---------------
+
 SCOPE/EPICS
 
 The application will contain:
@@ -52,3 +57,38 @@ Steam - Rises and dissipates
 Wood - Burns and carries fire
 Oil - Explodes if in contact with fire
 and more depending on time
+
+---------------
+
+TEST PLAN OVERVIEW
+
+Testing is split into two main categories, the client side simulation and the Django/Mongo backend,
+with a final system test towards the end
+
+1) Unit Tests: Simulation Engine
+- The core grid update loop, material behaviors, and reactions
+  Approach:
+  - Build a small grid by hand (5x5, 10x10...), run the engine for N steps, compare the result to a known
+    expected grid calculated by hand
+  - Make sure we check properties that always hold, examples:
+    a) Particle counts are conserved (ex. sand is never created or destroyed from thin air)
+    b) Static materials (stone) never move.
+    c) No particle can be updated over more then one tick
+    d) Water in a closed container eventually must level out
+  - Verify each defined interaction
+    a) fire next to wood ignites it
+    b) water next to fire extinguishes it
+    c) etc
+2) Integration Tests: API and Database
+  Approach:
+    - Round trip saving and loading: Save a scene through the API, load it back, confirm the returned
+      document is identical to the original
+    - Validation: Malformed or oversized scene documents must be rejected
+    - Authentication: Protected endpoints reject unauthenticated requests, and users can't modify eachothers
+      saved scenes
+3) Final System Test
+  Approach:
+    - A scripted checklist of what must work before finilizations
+    - Stress testing 
+
+   
