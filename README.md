@@ -35,7 +35,7 @@ The application will contain:
 - Playable in the browser
 - Anything else as long as we have time
 
-The game displays a realtime cellular-automata simulation, reminiscent of Conway's Game of Life.
+The game displays a real-time cellular-automata simulation, reminiscent of Conway's Game of Life.
 
 We need thousands of cells updating 30-60 times per second, and it has to run in the browser.
 - If we pushed each frame to Django manually that would be too slow
@@ -84,11 +84,11 @@ with a final system test towards the end
     - Round trip saving and loading: Save a scene through the API, load it back, confirm the returned
       document is identical to the original
     - Validation: Malformed or oversized scene documents must be rejected
-    - Authentication: Protected endpoints reject unauthenticated requests, and users can't modify eachothers
+    - Authentication: Protected endpoints reject unauthenticated requests, and users can't modify each others
       saved scenes
 3) Final System Test
   Approach:
-    - A scripted checklist of what must work before finilizations
+    - A scripted checklist of what must work before finalizations
     - Stress testing 
 
    
