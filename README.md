@@ -18,8 +18,10 @@ about basic physics and chemistry fundamentals
 
 ---------------
 
-FIGMA PERSONAS: https://www.figma.com/design/7FzzH3n66YKb1FPM4prG6l/Physics-Sim-Personas?node-id=11-176&t=SuTJ6pSWSGlm0TZl-0
-FIGMA UI: https://www.figma.com/make/xS6UxVHHr78p1nfaqF6TAL/Sandbox-Physics-Game?t=DyWKRAVRFOV7XMHe-1 
+FIGMA LINKS
+PERSONAS: https://www.figma.com/design/7FzzH3n66YKb1FPM4prG6l/Physics-Sim-Personas?node-id=11-176&t=SuTJ6pSWSGlm0TZl-0
+CONTEXT DIAGRAM: https://www.figma.com/make/jcddPTptLKNJQfWEi5Hvyt/Create-context-diagram?t=qVfd0emh5eyu0qZH-0
+UI: https://www.figma.com/make/xS6UxVHHr78p1nfaqF6TAL/Sandbox-Physics-Game?t=DyWKRAVRFOV7XMHe-1 
 
 ---------------
 
