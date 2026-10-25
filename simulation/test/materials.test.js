@@ -77,6 +77,10 @@ test('steam dissipates after its lifetime', () => {
   assert.deepEqual(rowsFromWorld(world), ['.']);
 });
 
+test('gas instances use the lifetime defined by their material', () => {
+  assert.equal(createPixel('steam').lifetime, Steam.lifetime);
+});
+
 test('gas lifetime can be configured for each created material', () => {
   const shortWorld = worldFromRows(['.']);
   shortWorld.set(0, 0, createPixel('steam', 1));

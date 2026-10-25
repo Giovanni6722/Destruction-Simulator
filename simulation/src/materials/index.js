@@ -26,6 +26,7 @@ export class Steam extends Gas {
   static symbol = 'v';
   static color = '#cbd5e1';
   static density = 0;
+  static lifetime = 100;
 }
 
 /** Every placeable material, keyed by type. New materials must be added here. */
