@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { MATERIALS, createPixel, Sand, Stone } from '../src/materials/index.js';
+import { MATERIALS, createPixel, Sand, Stone, Steam, Water } from '../src/materials/index.js';
 import { createRandom } from '../src/random.js';
 import { worldFromRows, rowsFromWorld, stepN } from './helpers.js';
 
@@ -16,6 +16,8 @@ test('every material has a unique type and symbol', () => {
 test('createPixel builds materials by type and rejects unknown ones', () => {
   assert.ok(createPixel('sand') instanceof Sand);
   assert.ok(createPixel('stone') instanceof Stone);
+  assert.ok(createPixel('water') instanceof Water);
+  assert.ok(createPixel('steam') instanceof Steam);
   assert.throws(() => createPixel('unobtainium'));
 });
 
@@ -49,6 +51,51 @@ test('sand cannot fall through stone', () => {
   const world = worldFromRows(['s', '#', '.']);
   stepN(world, 5);
   assert.deepEqual(rowsFromWorld(world), ['s', '#', '.']);
+});
+
+test('water falls and spreads across a floor', () => {
+  const world = worldFromRows(['..w..', '..w..', '..w..', '.....', '#####']);
+  stepN(world, 30);
+  assert.deepEqual(rowsFromWorld(world), ['.....', '.....', '.....', '.www.', '#####']);
+});
+
+test('sand displaces water', () => {
+  const world = worldFromRows(['s', 'w']);
+  world.step();
+  assert.deepEqual(rowsFromWorld(world), ['w', 's']);
+});
+
+test('steam rises', () => {
+  const world = worldFromRows(['...', '.v.', '...']);
+  world.step();
+  assert.deepEqual(rowsFromWorld(world), ['.v.', '...', '...']);
+});
+
+test('steam dissipates after its lifetime', () => {
+  const world = worldFromRows(['v']);
+  stepN(world, Steam.lifetime);
+  assert.deepEqual(rowsFromWorld(world), ['.']);
+});
+
+test('gas lifetime can be configured for each created material', () => {
+  const shortWorld = worldFromRows(['.']);
+  shortWorld.set(0, 0, createPixel('steam', 1));
+  shortWorld.step();
+  assert.equal(shortWorld.get(0, 0), null);
+
+  const longWorld = worldFromRows(['.']);
+  longWorld.set(0, 0, createPixel('steam', 3));
+  longWorld.step();
+  assert.ok(longWorld.get(0, 0) instanceof Steam);
+  longWorld.step();
+  assert.ok(longWorld.get(0, 0) instanceof Steam);
+  longWorld.step();
+  assert.equal(longWorld.get(0, 0), null);
+});
+
+test('gas lifetime must be a non-negative integer', () => {
+  assert.throws(() => createPixel('steam', -1), RangeError);
+  assert.throws(() => createPixel('steam', 1.5), RangeError);
 });
 
 // --- Properties that must always hold ---
