@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sandbox Physics</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Sandbox Physics</h1>
+      <div class="toolbar">
+        <div id="materials" role="group" aria-label="Material"></div>
+        <label>Brush <input id="brush" type="range" min="1" max="5" value="2" /></label>
+        <label>
+          Speed
+          <select id="speed">
+            <option value="0.25">¼×</option>
+            <option value="1" selected>1×</option>
+            <option value="2">2×</option>
+            <option value="4">4×</option>
+          </select>
+        </label>
+        <button id="pause">Pause</button>
+        <button id="step" disabled>Step</button>
+        <button id="undo" disabled>Undo</button>
+        <button id="clear">Clear</button>
+      </div>
+      <p id="stats" class="note"></p>
+      <canvas id="canvas" width="120" height="90" role="img" aria-label="Physics sandbox: drag to paint, right-click and drag to erase"></canvas>
+      <p class="note">Drag to paint · right-click and drag to erase · hold still to keep pouring</p>
+    </main>
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>
