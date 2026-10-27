@@ -30,10 +30,12 @@ export class Pixel {
   get density() { return this.constructor.density; }
   get isStatic() { return this.constructor.isStatic; }
 
-  /** Whether this pixel may move into a cell holding `other` (null = empty). */
-  canDisplace(other) {
+
+  canDisplace(other, rising = false) 
+  {
     if (other === null) return true;
-    return !other.isStatic && other.density < this.density;
+    if (other.isStatic) return false;
+    return rising ? other.density > this.density : other.density < this.density;
   }
 
   /**
