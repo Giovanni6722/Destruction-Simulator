@@ -92,6 +92,28 @@ test('tryMove swaps a heavier pixel with a lighter one', () => {
   assert.equal(world.get(0, 0), light);
 });
 
+test('tryMove upward swaps a lighter pixel with a heavier one', () => {
+  const world = new World(1, 2, { seed: 1 });
+  const heavy = new Faller();
+  const light = new Riser();
+  world.set(0, 0, heavy);
+  world.set(0, 1, light);
+  assert.equal(world.tryMove(0, 1, 0, 0), true);
+  assert.equal(world.get(0, 0), light);
+  assert.equal(world.get(0, 1), heavy);
+});
+
+test('tryMove upward refuses to lift a heavier pixel past a lighter one', () => {
+  const world = new World(1, 2, { seed: 1 });
+  const heavy = new Faller();
+  const light = new Riser();
+  world.set(0, 0, light);
+  world.set(0, 1, heavy);
+  assert.equal(world.tryMove(0, 1, 0, 0), false);
+  assert.equal(world.get(0, 0), light);
+  assert.equal(world.get(0, 1), heavy);
+});
+
 test('tryMove on an empty cell does nothing', () => {
   const world = new World(2, 2, { seed: 1 });
   assert.equal(world.tryMove(0, 0, 1, 0), false);

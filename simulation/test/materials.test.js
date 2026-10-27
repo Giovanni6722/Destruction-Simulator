@@ -71,6 +71,31 @@ test('steam rises', () => {
   assert.deepEqual(rowsFromWorld(world), ['.v.', '...', '...']);
 });
 
+test('steam bubbles up through water', () => {
+  const world = worldFromRows(['w', 'v']);
+  world.step();
+  assert.deepEqual(rowsFromWorld(world), ['v', 'w']);
+});
+
+test('steam escapes from under a column of water', () => {
+  const world = worldFromRows(['.', 'w', 'w', 'v']);
+  stepN(world, 10);
+  assert.deepEqual(rowsFromWorld(world), ['v', '.', 'w', 'w']);
+});
+
+test('steam cannot rise through stone', () => {
+  const world = worldFromRows(['.', '#', 'v']);
+  stepN(world, 5);
+  assert.deepEqual(rowsFromWorld(world), ['.', '#', 'v']);
+});
+
+test('water displaced by rising steam still updates that tick', () => {
+  const world = worldFromRows(['w', 'v']);
+  const water = world.get(0, 0);
+  world.step();
+  assert.equal(water.lastUpdatedTick, world.tick);
+});
+
 test('steam dissipates after its lifetime', () => {
   const world = worldFromRows(['v']);
   stepN(world, Steam.lifetime);
