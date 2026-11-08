@@ -19,6 +19,21 @@ test('size 1 is a single cell and every size is bigger and symmetric', () => {
   }
 });
 
+test('all brush shapes have distinct footprints and size 1 remains one cell', () => {
+  const shapes = ['circle', 'star', 'square', 'rectangle', 'trapezoid'];
+  for (const shape of shapes) assert.deepEqual(brushOffsets(1, shape), [[0, 0]]);
+  const footprints = shapes.map((shape) => JSON.stringify(brushOffsets(4, shape)));
+  assert.equal(new Set(footprints).size, shapes.length);
+});
+
+test('selected shape is used for painting and erasing', () => {
+  const world = newWorld();
+  paintAt(world, 5, 5, 'stone', 3, 'square');
+  assert.equal(world.get(3, 3).type, 'stone');
+  paintAt(world, 5, 5, ERASE, 3, 'square');
+  assert.equal(count(world), 0);
+});
+
 test('lineCells includes both ends and never leaves a gap', () => {
   assert.deepEqual(lineCells(3, 3, 3, 3), [[3, 3]]);
   assert.deepEqual(lineCells(0, 0, 3, 3), [[0, 0], [1, 1], [2, 2], [3, 3]]);

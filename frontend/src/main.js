@@ -13,22 +13,27 @@ const $ = (id) => document.getElementById(id);
 const canvas = $('canvas');
 const world = new World(WIDTH, HEIGHT);
 const draw = createRenderer(canvas.getContext('2d'), WIDTH, HEIGHT);
-const state = { material: 'sand', brush: 2, speed: 1, paused: false };
+const state = { material: 'sand', brush: 2, shape: 'circle', speed: 1, paused: false };
 const undoStack = [];
 let stroke = null; // { id, erase, cell } while a pointer is painting
 
-// One button per material in the engine's registry (plus the eraser), so new materials appear automatically.
-for (const [type, { color }] of [...Object.entries(MATERIALS), [ERASE, { color: '#0b0d12' }]]) {
+function selectMaterial(type) {
+  state.material = type;
+  for (const button of $('materials').children) button.setAttribute('aria-pressed', button.dataset.material === type);
+  $('erase').setAttribute('aria-pressed', type === ERASE);
+}
+
+// One button per material in the engine's registry, so new materials appear automatically.
+for (const [type, { color }] of Object.entries(MATERIALS)) {
   const button = document.createElement('button');
   button.textContent = type[0].toUpperCase() + type.slice(1);
   button.style.setProperty('--c', color);
+  button.dataset.material = type;
   button.setAttribute('aria-pressed', type === state.material);
-  button.onclick = () => {
-    state.material = type;
-    for (const other of $('materials').children) other.setAttribute('aria-pressed', other === button);
-  };
+  button.onclick = () => selectMaterial(type);
   $('materials').append(button);
 }
+$('erase').onclick = () => selectMaterial(ERASE);
 
 // Undo: a snapshot is a plain array with one material type (or null) per cell.
 function pushUndo() {
@@ -46,6 +51,12 @@ $('clear').onclick = () => { pushUndo(); world.grid.cells.fill(null); };
 $('step').onclick = () => world.step();
 $('speed').onchange = (e) => { state.speed = Number(e.target.value); };
 $('brush').oninput = (e) => { state.brush = Number(e.target.value); };
+for (const button of $('shapes').children) {
+  button.onclick = () => {
+    state.shape = button.dataset.shape;
+    for (const other of $('shapes').children) other.setAttribute('aria-pressed', other === button);
+  };
+}
 $('pause').onclick = (e) => {
   state.paused = !state.paused;
   e.target.textContent = state.paused ? 'Resume' : 'Pause';
@@ -60,7 +71,7 @@ const cellAt = (e) => {
     Math.floor(((e.clientY - rect.top) / rect.height) * HEIGHT),
   ];
 };
-const stamp = () => paintAt(world, ...stroke.cell, stroke.erase ? ERASE : state.material, state.brush);
+const stamp = () => paintAt(world, ...stroke.cell, stroke.erase ? ERASE : state.material, state.brush, state.shape);
 
 canvas.oncontextmenu = (e) => e.preventDefault();
 canvas.onpointerdown = (e) => {
@@ -73,7 +84,7 @@ canvas.onpointerdown = (e) => {
 canvas.onpointermove = (e) => {
   if (stroke?.id !== e.pointerId) return;
   const cell = cellAt(e);
-  paintLine(world, stroke.cell, cell, stroke.erase ? ERASE : state.material, state.brush);
+  paintLine(world, stroke.cell, cell, stroke.erase ? ERASE : state.material, state.brush, state.shape);
   stroke.cell = cell;
 };
 canvas.onpointerup = canvas.onpointercancel = (e) => { if (stroke?.id === e.pointerId) stroke = null; };
