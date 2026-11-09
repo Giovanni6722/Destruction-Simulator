@@ -139,43 +139,6 @@ and a passing test suite.
 
 ---------------
 
-FEATURE DEVELOPMENT
-
-Every user story is developed on its own feature branch and merged into `main` through a pull request.
-Each pull request is linked to its Kanban issue, includes at least one test that checks the story's
-acceptance criteria, has a teammate's approval, and has a green pipeline.
-
-Epic 1: Core Simulation and Build Tools
-
-| User Story | Branch | Pull Request | Tests |
-|---|---|---|---|
-| As a player, I want sand to fall and pile up and stone to stay in place, so the sandbox behaves physically | physics-logic | #22 | simulation/test/Grid.test.js, Pixel.test.js, World.test.js, materials.test.js |
-| As a player, I want water to flow and level out and steam to rise and dissipate | myBranch | #23 | simulation/test/materials.test.js, World.test.js |
-| As a player, I want to paint materials onto a canvas in my browser | PatrickH1017/frontend | #25 | frontend/test/brush.test.js |
-| As a player, I want different brush shapes/sizes and an eraser | ui-brush-eraser | #26 | frontend/test/brush.test.js |
-
-Epic 2: Account System and Authentication
-
-| User Story | Branch | Pull Request | Tests |
-|---|---|---|---|
-| As a new user, I want to register an account with a username, email and password | phil/account-management-sprint2 | #28 | accounts/tests.py |
-| As a user, I want to log in and log out | phil/account-management-sprint2 | #28 | accounts/tests.py |
-| As a user, I want to view and update my profile | phil/account-management-sprint2 | #28 | accounts/tests.py |
-| As a frontend, I need a CSRF token so login/register requests from the browser are accepted | updateCICDPipeline | #29 | accounts/tests.py |
-
-Account API endpoints (all under `/api/accounts/`):
-
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `csrf/` | Returns a CSRF token and sets the CSRF cookie |
-| POST | `register/` | Create an account |
-| POST | `login/` | Log in (session cookie) |
-| POST | `logout/` | Log out |
-| GET | `profile/` | Get the logged-in user's profile |
-| PUT | `profile/update/` | Update username/email |
-
----------------
-
 SECRETS
 
 No API keys, tokens or passwords are stored in the code, the workflow file, or the commit history.
