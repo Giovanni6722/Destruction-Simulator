@@ -1,0 +1,19 @@
+:root { color-scheme: dark; font-family: system-ui, sans-serif; }
+body { margin: 0; background: #0b0d12; color: #e6e8ee; }
+main { max-width: 960px; margin: 0 auto; padding: 16px; display: grid; gap: 12px; }
+h1 { margin: 0; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+#materials { display: flex; gap: 6px; }
+button, select {
+  font: inherit; padding: 4px 10px; border-radius: 6px;
+  border: 1px solid #3a4152; background: #1a1f2b; color: inherit; cursor: pointer;
+}
+button:disabled { opacity: 0.4; cursor: default; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid #4cc2ff; }
+#materials button { border-left: 6px solid var(--c); }
+button[aria-pressed='true'] { background: #2b3550; border-color: #4cc2ff; }
+canvas {
+  width: 100%; aspect-ratio: 4 / 3; background: #0b0d12; outline: 1px solid #2a3140;
+  image-rendering: pixelated; touch-action: none; cursor: crosshair;
+}
+.note { margin: 0; font-size: 0.875rem; opacity: 0.8; }
