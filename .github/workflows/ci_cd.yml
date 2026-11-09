@@ -43,9 +43,23 @@ jobs:
       - name: Run simulation tests
         run: npm test
 
+  frontend:
+    name: Frontend (Node)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Run frontend tests
+        run: npm test
+
   deploy:
     name: Deploy to Render
-    needs: [backend, simulation]
+    needs: [backend, simulation, frontend]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
