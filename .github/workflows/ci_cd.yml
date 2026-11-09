@@ -22,6 +22,7 @@ jobs:
           test -f manage.py
           test -f requirements.txt
           test -f simulation/package.json
+          test -f frontend/package.json
           echo "Project setup verified."
 
   dependencies:
@@ -51,6 +52,10 @@ jobs:
 
       - name: Install simulation dependencies
         working-directory: simulation
+        run: npm install
+
+      - name: Install frontend dependencies
+        working-directory: frontend
         run: npm install
 
   test:
@@ -83,8 +88,20 @@ jobs:
         with:
           node-version: 24
 
+      - name: Install simulation dependencies
+        working-directory: simulation
+        run: npm install
+
       - name: Run simulation tests
         working-directory: simulation
+        run: npm test
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Run frontend tests
+        working-directory: frontend
         run: npm test
 
   deploy:
