@@ -47,6 +47,20 @@ test('static pixels are never displaced, regardless of density', () => {
   assert.equal(new Heavy().canDisplace(new Wall()), false);
 });
 
+test('when rising, lighter pixels displace heavier ones, not the reverse', () => {
+  assert.equal(new Light().canDisplace(new Heavy(), true), true);
+  assert.equal(new Heavy().canDisplace(new Light(), true), false);
+});
+
+test('when rising, equal density and static pixels are not displaced', () => {
+  assert.equal(new Light().canDisplace(new Light(), true), false);
+  assert.equal(new Light().canDisplace(new Wall(), true), false);
+});
+
+test('when rising, any pixel can move into an empty cell', () => {
+  assert.equal(new Heavy().canDisplace(null, true), true);
+});
+
 test('default update does nothing', () => {
   assert.doesNotThrow(() => new Pixel().update(0, 0, null));
 });

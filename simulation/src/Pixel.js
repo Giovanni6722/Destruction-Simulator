@@ -33,10 +33,12 @@ export class Pixel {
   get isStatic() { return this.constructor.isStatic; }
   get flammable() { return this.constructor.flammable; }
 
-  /** Whether this pixel may move into a cell holding `other` (null = empty). */
-  canDisplace(other) {
+
+  canDisplace(other, rising = false) 
+  {
     if (other === null) return true;
-    return !other.isStatic && other.density < this.density;
+    if (other.isStatic) return false;
+    return rising ? other.density > this.density : other.density < this.density;
   }
 
   /**
