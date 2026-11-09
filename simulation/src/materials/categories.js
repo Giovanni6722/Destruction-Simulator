@@ -56,3 +56,6 @@ export class Gas extends Pixel {
     world.tryMove(x, y, x - dir, y);
   }
 }
+
+/** Rises and dissipates like a gas, with fire-specific material interactions. */
+export class Fire extends Gas {}

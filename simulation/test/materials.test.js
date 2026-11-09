@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { MATERIALS, createPixel, Sand, Stone, Steam, Water } from '../src/materials/index.js';
+import { MATERIALS, createPixel, Fire, Oil, Sand, Stone, Steam, Water } from '../src/materials/index.js';
 import { createRandom } from '../src/random.js';
 import { worldFromRows, rowsFromWorld, stepN } from './helpers.js';
 
@@ -17,7 +17,9 @@ test('createPixel builds materials by type and rejects unknown ones', () => {
   assert.ok(createPixel('sand') instanceof Sand);
   assert.ok(createPixel('stone') instanceof Stone);
   assert.ok(createPixel('water') instanceof Water);
+  assert.ok(createPixel('oil') instanceof Oil);
   assert.ok(createPixel('steam') instanceof Steam);
+  assert.ok(createPixel('fire') instanceof Fire);
   assert.throws(() => createPixel('unobtainium'));
 });
 
@@ -59,6 +61,14 @@ test('water falls and spreads across a floor', () => {
   assert.deepEqual(rowsFromWorld(world), ['.....', '.....', '.....', '.www.', '#####']);
 });
 
+test('oil floats on water', () => {
+  const world = worldFromRows(['w', 'o', '#']);
+  world.step();
+  assert.equal(world.get(0, 0)?.type, 'oil');
+  assert.equal(world.get(0, 1)?.type, 'water');
+  assert.ok(Oil.density < Water.density);
+});
+
 test('sand displaces water', () => {
   const world = worldFromRows(['s', 'w']);
   world.step();
@@ -95,6 +105,34 @@ test('water displaced by rising steam still updates that tick', () => {
   world.step();
   assert.equal(water.lastUpdatedTick, world.tick);
 });
+
+test('fire rises', () => {
+  const world = worldFromRows(['...', '.f.', '...']);
+  world.step();
+  assert.deepEqual(rowsFromWorld(world), ['.f.', '...', '...']);
+});
+
+test('fire turns water into steam and is extinguished', () => {
+  const world = worldFromRows(['f', 'w', '#']);
+  world.step();
+  assert.deepEqual(rowsFromWorld(world), ['.', 'v', '#']);
+  assert.ok(world.get(0, 1) instanceof Steam);
+});
+
+test('fire spreads to adjacent oil and converts it to fire', () => {
+  const world = worldFromRows(['o', 'f', '#']);
+  world.step();
+  assert.ok(world.get(0, 0) instanceof Fire);
+  assert.ok(world.get(0, 1) instanceof Fire);
+  assert.equal(new Oil().flammable, true);
+});
+
+test('fire dissipates after its lifetime', () => {
+  const world = worldFromRows(['f']);
+  stepN(world, Fire.lifetime);
+  assert.deepEqual(rowsFromWorld(world), ['.']);
+});
+
 
 test('steam dissipates after its lifetime', () => {
   const world = worldFromRows(['v']);
