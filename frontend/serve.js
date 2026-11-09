@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const allowed = [join(root, 'frontend') + sep, join(root, 'simulation', 'src') + sep];
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
+const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png' };
 const port = Number(process.env.PORT) || 8080;
 
 createServer(async (req, res) => {
