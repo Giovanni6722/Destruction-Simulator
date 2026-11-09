@@ -7,6 +7,8 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import IntegrityError
 from django.http import JsonResponse
+from django.middleware.csrf import get_token
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import (
     require_GET,
     require_POST,
@@ -33,10 +35,16 @@ def parse_json(request):
     return data, None
 
 
+@require_GET
+@ensure_csrf_cookie
+def csrf_token(request):
+    """Return a CSRF token for frontend requests."""
+    return JsonResponse({"csrfToken": get_token(request)})
+
+
 @require_POST
 def register(request):
     data, error_response = parse_json(request)
-
     if error_response:
         return error_response
 
@@ -107,7 +115,6 @@ def register(request):
 @require_POST
 def user_login(request):
     data, error_response = parse_json(request)
-
     if error_response:
         return error_response
 
@@ -156,11 +163,7 @@ def user_logout(request):
         )
 
     logout(request)
-
-    return JsonResponse(
-        {"message": "Logout successful."},
-        status=200,
-    )
+    return JsonResponse({"message": "Logout successful."}, status=200)
 
 
 @require_GET
@@ -190,7 +193,6 @@ def update_profile(request):
         )
 
     data, error_response = parse_json(request)
-
     if error_response:
         return error_response
 
