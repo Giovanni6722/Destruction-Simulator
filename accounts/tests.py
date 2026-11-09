@@ -163,7 +163,6 @@ class AuthenticationTests(TestCase):
                 data=json.dumps(["not", "an", "object"]),
                 content_type="application/json",
             )
-
             self.assertEqual(response.status_code, 400)
             self.assertIn("error", response.json())
 
@@ -234,3 +233,18 @@ class ProfileUpdateTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 401)
+
+
+
+class CsrfTokenTests(TestCase):
+
+    def test_csrf_endpoint_returns_token_and_cookie(self):
+        response = self.client.get(
+            "/api/accounts/csrf/",
+            HTTP_HOST="localhost",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("csrfToken", response.json())
+        self.assertTrue(response.json()["csrfToken"])
+        self.assertIn("csrftoken", response.cookies)
