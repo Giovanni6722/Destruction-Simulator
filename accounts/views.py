@@ -4,7 +4,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
+from django.core.validators import MaxLengthValidator, validate_email
 from django.db import IntegrityError
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
@@ -35,6 +35,15 @@ def parse_json(request):
     return data, None
 
 
+USERNAME_MAX_LENGTH = 25
+
+
+def validate_username(username):
+    """Check the app's username length limit and the User model's character rules."""
+    MaxLengthValidator(USERNAME_MAX_LENGTH)(username)
+    User._meta.get_field("username").run_validators(username)
+
+
 @require_GET
 @ensure_csrf_cookie
 def csrf_token(request):
@@ -49,12 +58,20 @@ def register(request):
         return error_response
 
     username = data.get("username", "").strip()
-    email = data.get("email", "").strip()
+    email = data.get("email", "").strip().lower()
     password = data.get("password", "")
 
     if not username or not email or not password:
         return JsonResponse(
             {"error": "Username, email, and password are required."},
+            status=400,
+        )
+
+    try:
+        validate_username(username)
+    except ValidationError as error:
+        return JsonResponse(
+            {"error": error.messages},
             status=400,
         )
 
@@ -81,7 +98,7 @@ def register(request):
             status=409,
         )
 
-    if User.objects.filter(email=email).exists():
+    if User.objects.filter(email__iexact=email).exists():
         return JsonResponse(
             {"error": "Email already exists."},
             status=409,
@@ -197,11 +214,19 @@ def update_profile(request):
         return error_response
 
     username = data.get("username", request.user.username).strip()
-    email = data.get("email", request.user.email).strip()
+    email = data.get("email", request.user.email).strip().lower()
 
     if not username or not email:
         return JsonResponse(
             {"error": "Username and email cannot be empty."},
+            status=400,
+        )
+
+    try:
+        validate_username(username)
+    except ValidationError as error:
+        return JsonResponse(
+            {"error": error.messages},
             status=400,
         )
 
@@ -221,7 +246,7 @@ def update_profile(request):
             status=409,
         )
 
-    if User.objects.filter(email=email).exclude(
+    if User.objects.filter(email__iexact=email).exclude(
         id=request.user.id
     ).exists():
         return JsonResponse(

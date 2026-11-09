@@ -88,6 +88,82 @@ class RegistrationTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("error", response.json())
 
+    def test_invalid_username_rejected(self):
+        response = self.client.post(
+            "/api/accounts/register/",
+            data=json.dumps({
+                "username": "bad name <script>",
+                "email": "bad@example.com",
+                "password": "SecurePass123!",
+            }),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(User.objects.filter(email="bad@example.com").exists())
+
+    def test_too_long_username_rejected(self):
+        response = self.client.post(
+            "/api/accounts/register/",
+            data=json.dumps({
+                "username": "a" * 26,
+                "email": "long@example.com",
+                "password": "SecurePass123!",
+            }),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_max_length_username_accepted(self):
+        response = self.client.post(
+            "/api/accounts/register/",
+            data=json.dumps({
+                "username": "a" * 25,
+                "email": "maxlen@example.com",
+                "password": "SecurePass123!",
+            }),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+
+    def test_email_is_lowercased(self):
+        response = self.client.post(
+            "/api/accounts/register/",
+            data=json.dumps({
+                "username": "mixedemail",
+                "email": "Mixed@Example.COM",
+                "password": "SecurePass123!",
+            }),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(
+            User.objects.get(username="mixedemail").email,
+            "mixed@example.com",
+        )
+
+    def test_duplicate_email_different_case_rejected(self):
+        User.objects.create_user(
+            username="firstuser",
+            email="Same@x.com",
+            password="SecurePass123!",
+        )
+
+        response = self.client.post(
+            "/api/accounts/register/",
+            data=json.dumps({
+                "username": "seconduser",
+                "email": "same@x.com",
+                "password": "SecurePass123!",
+            }),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 409)
+
 class AuthenticationTests(TestCase):
 
     def setUp(self):
@@ -216,6 +292,32 @@ class ProfileUpdateTests(TestCase):
             data=json.dumps({
                 "username": "takenuser",
             }),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 409)
+
+    def test_invalid_username_update(self):
+        response = self.client.put(
+            "/api/accounts/profile/update/",
+            data=json.dumps({"username": "bad name <script>"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.username, "profileuser")
+
+    def test_duplicate_email_different_case_update(self):
+        User.objects.create_user(
+            username="otheruser",
+            email="other@example.com",
+            password="SecurePass123!",
+        )
+
+        response = self.client.put(
+            "/api/accounts/profile/update/",
+            data=json.dumps({"email": "OTHER@example.com"}),
             content_type="application/json",
         )
 
