@@ -18,6 +18,8 @@ export class Pixel {
   static density = 0;
   /** Static pixels never move (stone, walls). */
   static isStatic = false;
+  /** Whether this material can be ignited by fire. */
+  static flammable = false;
 
   constructor() {
     // Tick on which this pixel last ran update(); guarantees one update per tick.
@@ -29,6 +31,7 @@ export class Pixel {
   get color() { return this.constructor.color; }
   get density() { return this.constructor.density; }
   get isStatic() { return this.constructor.isStatic; }
+  get flammable() { return this.constructor.flammable; }
 
 
   canDisplace(other, rising = false) 

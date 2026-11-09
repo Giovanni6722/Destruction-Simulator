@@ -1,4 +1,4 @@
-import { Solid, Powder, Liquid, Gas } from './categories.js';
+import { Solid, Powder, Liquid, Gas, Fire as FireCategory } from './categories.js';
 
 export class Stone extends Solid {
   static type = 'stone';
@@ -21,6 +21,14 @@ export class Water extends Liquid {
   static density = 1;
 }
 
+export class Oil extends Liquid {
+  static type = 'oil';
+  static symbol = 'o';
+  static color = '#a16207';
+  static density = 0.5;
+  static flammable = true;
+}
+
 export class Steam extends Gas {
   static type = 'steam';
   static symbol = 'v';
@@ -29,8 +37,39 @@ export class Steam extends Gas {
   static lifetime = 100;
 }
 
+export class Fire extends FireCategory {
+  static type = 'fire';
+  static symbol = 'f';
+  static color = '#f97316';
+  static density = 0;
+  static lifetime = 100;
+
+  update(x, y, world) {
+    const neighbors = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+    for (const [dx, dy] of neighbors) {
+      const waterX = x + dx;
+      const waterY = y + dy;
+      if (world.get(waterX, waterY)?.type !== 'water') continue;
+
+      world.set(waterX, waterY, new Steam());
+      world.set(x, y, null);
+      return;
+    }
+
+    for (const [dx, dy] of neighbors) {
+      const fuelX = x + dx;
+      const fuelY = y + dy;
+      if (!world.get(fuelX, fuelY)?.flammable) continue;
+
+      world.set(fuelX, fuelY, new Fire());
+    }
+
+    super.update(x, y, world);
+  }
+}
+
 /** Every placeable material, keyed by type. New materials must be added here. */
-export const MATERIALS = { stone: Stone, sand: Sand, water: Water, steam: Steam };
+export const MATERIALS = { stone: Stone, sand: Sand, water: Water, oil: Oil, steam: Steam, fire: Fire };
 
 export function createPixel(type, ...args) {
   const Material = MATERIALS[type];
