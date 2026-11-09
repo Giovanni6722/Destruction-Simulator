@@ -10,56 +10,103 @@ permissions:
   contents: read
 
 jobs:
-  backend:
-    name: Backend (Django)
+  setup:
+    name: Setup
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify project files
+        run: |
+          test -f manage.py
+          test -f requirements.txt
+          test -f simulation/package.json
+          test -f frontend/package.json
+          echo "Project setup verified."
+
+  dependencies:
+    name: Dependencies
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version-file: .python-version
           cache: pip
-      - name: Install dependencies
+
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip check
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install simulation dependencies
+        working-directory: simulation
+        run: npm install
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+  test:
+    name: Test
+    needs: dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+          cache: pip
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
       - name: Django system check
         run: python manage.py check
+
       - name: Run Django tests
         run: python manage.py test --verbosity 2
 
-  simulation:
-    name: Simulation engine (Node)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: simulation
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 24
+
+      - name: Install simulation dependencies
+        working-directory: simulation
+        run: npm install
+
       - name: Run simulation tests
+        working-directory: simulation
         run: npm test
 
-  frontend:
-    name: Frontend (Node)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
+      - name: Install frontend dependencies
         working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
+        run: npm install
+
       - name: Run frontend tests
+        working-directory: frontend
         run: npm test
 
   deploy:
-    name: Deploy to Render
-    needs: [backend, simulation, frontend]
+    name: Deploy
+    needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
@@ -69,12 +116,13 @@ jobs:
       HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
       APP_URL: ${{ vars.RENDER_APP_URL }}
     steps:
-      - name: Trigger Render deploy
+      - name: Trigger Render deployment
         run: |
           [ -n "$HOOK" ] || { echo "::error::RENDER_DEPLOY_HOOK_URL secret is not set"; exit 1; }
           [ -n "$APP_URL" ] || { echo "::error::RENDER_APP_URL variable is not set"; exit 1; }
           curl -fsS -X POST "$HOOK"
-      - name: Wait for Render to serve this commit
+
+      - name: Verify deployed commit
         run: |
           for i in $(seq 1 60); do
             live=$(curl -fsS "$APP_URL/health/" | python3 -c "import sys,json; print(json.load(sys.stdin)['commit'])" 2>/dev/null || true)
