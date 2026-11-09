@@ -1,10 +1,35 @@
 import json
 
-from django.test import TestCase
-from django.contrib.auth.models import User
+import mongomock
+from django.contrib.auth.hashers import check_password
+from django.test import SimpleTestCase
+
+from . import users
+from .mongo import use_test_database
 
 
-class RegistrationTests(TestCase):
+class MongoTestCase(SimpleTestCase):
+    """Runs each test against a fresh in-memory MongoDB."""
+
+    def setUp(self):
+        use_test_database(mongomock.MongoClient().db)
+
+    def create_user(self, username, email, password="SecurePass123!"):
+        return users.create_user(username, email, password)
+
+    def log_in(self, username, password="SecurePass123!"):
+        response = self.client.post(
+            "/api/accounts/login/",
+            data=json.dumps({"username": username, "password": password}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def find(self, **query):
+        return users.users_collection().find_one(query)
+
+
+class RegistrationTests(MongoTestCase):
 
     def test_successful_registration(self):
         response = self.client.post(
@@ -18,10 +43,10 @@ class RegistrationTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 201)
-        self.assertTrue(User.objects.filter(username="testuser").exists())
-
-        user = User.objects.get(username="testuser")
-        self.assertTrue(user.check_password("SecurePass123!"))
+        user = self.find(username="testuser")
+        self.assertIsNotNone(user)
+        self.assertTrue(check_password("SecurePass123!", user["password"]))
+        self.assertEqual(response.json()["user"]["id"], str(user["_id"]))
 
     def test_missing_required_fields(self):
         response = self.client.post(
@@ -46,11 +71,7 @@ class RegistrationTests(TestCase):
         self.assertEqual(response.status_code, 400)
 
     def test_duplicate_username(self):
-        User.objects.create_user(
-            username="testuser",
-            email="first@example.com",
-            password="SecurePass123!",
-        )
+        self.create_user("testuser", "first@example.com")
 
         response = self.client.post(
             "/api/accounts/register/",
@@ -100,7 +121,7 @@ class RegistrationTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
-        self.assertFalse(User.objects.filter(email="bad@example.com").exists())
+        self.assertIsNone(self.find(email="bad@example.com"))
 
     def test_too_long_username_rejected(self):
         response = self.client.post(
@@ -141,16 +162,12 @@ class RegistrationTests(TestCase):
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(
-            User.objects.get(username="mixedemail").email,
+            self.find(username="mixedemail")["email"],
             "mixed@example.com",
         )
 
     def test_duplicate_email_different_case_rejected(self):
-        User.objects.create_user(
-            username="firstuser",
-            email="Same@x.com",
-            password="SecurePass123!",
-        )
+        self.create_user("firstuser", "Same@x.com")
 
         response = self.client.post(
             "/api/accounts/register/",
@@ -164,14 +181,11 @@ class RegistrationTests(TestCase):
 
         self.assertEqual(response.status_code, 409)
 
-class AuthenticationTests(TestCase):
+class AuthenticationTests(MongoTestCase):
 
     def setUp(self):
-        self.user = User.objects.create_user(
-            username="philtest",
-            email="phil@example.com",
-            password="SecurePass123!",
-        )
+        super().setUp()
+        self.user = self.create_user("philtest", "phil@example.com")
 
     def test_successful_login(self):
         response = self.client.post(
@@ -184,7 +198,7 @@ class AuthenticationTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.wsgi_request.user.is_authenticated)
+        self.assertEqual(self.client.get("/api/accounts/profile/").status_code, 200)
 
     def test_invalid_password(self):
         response = self.client.post(
@@ -208,12 +222,12 @@ class AuthenticationTests(TestCase):
         self.assertEqual(response.status_code, 400)
 
     def test_successful_logout(self):
-        self.client.force_login(self.user)
+        self.log_in("philtest")
 
         response = self.client.post("/api/accounts/logout/")
 
         self.assertEqual(response.status_code, 200)
-        self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertEqual(self.client.get("/api/accounts/profile/").status_code, 401)
 
     def test_logout_without_authentication(self):
         response = self.client.post("/api/accounts/logout/")
@@ -221,7 +235,7 @@ class AuthenticationTests(TestCase):
         self.assertEqual(response.status_code, 401)
 
     def test_authenticated_profile(self):
-        self.client.force_login(self.user)
+        self.log_in("philtest")
 
         response = self.client.get("/api/accounts/profile/")
 
@@ -242,16 +256,13 @@ class AuthenticationTests(TestCase):
             self.assertEqual(response.status_code, 400)
             self.assertIn("error", response.json())
 
-class ProfileUpdateTests(TestCase):
+class ProfileUpdateTests(MongoTestCase):
 
     def setUp(self):
-        self.user = User.objects.create_user(
-            username="profileuser",
-            email="profile@example.com",
-            password="SecurePass123!",
-        )
+        super().setUp()
+        self.user = self.create_user("profileuser", "profile@example.com")
 
-        self.client.force_login(self.user)
+        self.log_in("profileuser")
 
     def test_successful_profile_update(self):
         response = self.client.put(
@@ -265,9 +276,9 @@ class ProfileUpdateTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
 
-        self.user.refresh_from_db()
-        self.assertEqual(self.user.username, "updateduser")
-        self.assertEqual(self.user.email, "updated@example.com")
+        user = self.find(_id=self.user["_id"])
+        self.assertEqual(user["username"], "updateduser")
+        self.assertEqual(user["email"], "updated@example.com")
 
     def test_invalid_email_update(self):
         response = self.client.put(
@@ -281,11 +292,7 @@ class ProfileUpdateTests(TestCase):
         self.assertEqual(response.status_code, 400)
 
     def test_duplicate_username_update(self):
-        User.objects.create_user(
-            username="takenuser",
-            email="taken@example.com",
-            password="SecurePass123!",
-        )
+        self.create_user("takenuser", "taken@example.com")
 
         response = self.client.put(
             "/api/accounts/profile/update/",
@@ -305,15 +312,10 @@ class ProfileUpdateTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
-        self.user.refresh_from_db()
-        self.assertEqual(self.user.username, "profileuser")
+        self.assertEqual(self.find(_id=self.user["_id"])["username"], "profileuser")
 
     def test_duplicate_email_different_case_update(self):
-        User.objects.create_user(
-            username="otheruser",
-            email="other@example.com",
-            password="SecurePass123!",
-        )
+        self.create_user("otheruser", "other@example.com")
 
         response = self.client.put(
             "/api/accounts/profile/update/",
@@ -324,7 +326,7 @@ class ProfileUpdateTests(TestCase):
         self.assertEqual(response.status_code, 409)
 
     def test_unauthenticated_profile_update(self):
-        self.client.logout()
+        self.client.post("/api/accounts/logout/")
 
         response = self.client.put(
             "/api/accounts/profile/update/",
@@ -338,7 +340,7 @@ class ProfileUpdateTests(TestCase):
 
 
 
-class CsrfTokenTests(TestCase):
+class CsrfTokenTests(MongoTestCase):
 
     def test_csrf_endpoint_returns_token_and_cookie(self):
         response = self.client.get(

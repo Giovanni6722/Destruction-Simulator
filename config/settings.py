@@ -87,6 +87,18 @@ DATABASES = {
 }
 
 
+# User accounts live in MongoDB (see accounts/mongo.py). The SQLite file above
+# only holds Django internals and is wiped on every Render deploy, so nothing
+# that must survive a deploy may be stored in it.
+MONGODB_URI = os.environ.get('MONGODB_URI', '')
+MONGODB_DB_NAME = os.environ.get('MONGODB_DB_NAME', 'destruction_simulator')
+
+# Sessions are kept in a signed cookie so logins don't depend on the SQLite file either.
+SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+
+
 # Password validation
 # https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
 
