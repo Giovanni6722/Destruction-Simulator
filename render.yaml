@@ -12,3 +12,5 @@ services:
         generateValue: true
       - key: DJANGO_DEBUG
         value: "False"
+      - key: MONGODB_URI
+        sync: false # set in the Render dashboard (MongoDB Atlas connection string)

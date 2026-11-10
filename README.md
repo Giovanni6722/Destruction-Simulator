@@ -157,11 +157,15 @@ in the logs. `.env` files are listed in `.gitignore` so local credentials are ne
 
 RUNNING LOCALLY
 
-Backend:
+Backend (user accounts are stored in MongoDB, so set `MONGODB_URI` first, e.g. a free
+MongoDB Atlas cluster or `mongodb://localhost:27017` for a local server):
 
-    pip install -r requirements.txt
+    pip install -r requirements-dev.txt
+    export MONGODB_URI="mongodb+srv://..."   # PowerShell: $env:MONGODB_URI = "..."
     python manage.py migrate
     python manage.py runserver
+
+Tests use an in-memory MongoDB (mongomock), so they don't need `MONGODB_URI`.
 
 Frontend (http://localhost:8080):
 
