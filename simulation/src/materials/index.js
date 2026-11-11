@@ -27,6 +27,12 @@ export class Oil extends Liquid {
   static color = '#a16207';
   static density = 0.5;
   static flammable = true;
+  static ignitionDelay = 2;
+
+  canDisplace(other, rising = false) {
+    if (other?.type === 'fire') return false;
+    return super.canDisplace(other, rising);
+  }
 }
 
 export class Steam extends Gas {
@@ -42,7 +48,12 @@ export class Fire extends FireCategory {
   static symbol = 'f';
   static color = '#f97316';
   static density = 0;
-  static lifetime = 100;
+  static lifetime = 50;
+
+  canDisplace(other, rising = false) {
+    if (other?.flammable) return false;
+    return super.canDisplace(other, rising);
+  }
 
   update(x, y, world) {
     const neighbors = [[0, -1], [1, 0], [0, 1], [-1, 0]];
@@ -59,7 +70,14 @@ export class Fire extends FireCategory {
     for (const [dx, dy] of neighbors) {
       const fuelX = x + dx;
       const fuelY = y + dy;
-      if (!world.get(fuelX, fuelY)?.flammable) continue;
+      const fuel = world.get(fuelX, fuelY);
+      if (!fuel?.flammable) continue;
+
+      if (fuel.lastIgnitionTick !== world.tick) {
+        fuel.ignitionTicks++;
+        fuel.lastIgnitionTick = world.tick;
+      }
+      if (fuel.ignitionTicks < fuel.ignitionDelay) continue;
 
       world.set(fuelX, fuelY, new Fire());
     }

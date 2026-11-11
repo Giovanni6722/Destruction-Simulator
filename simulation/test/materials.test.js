@@ -119,12 +119,37 @@ test('fire turns water into steam and is extinguished', () => {
   assert.ok(world.get(0, 1) instanceof Steam);
 });
 
-test('fire spreads to adjacent oil and converts it to fire', () => {
-  const world = worldFromRows(['o', 'f', '#']);
-  world.step();
-  assert.ok(world.get(0, 0) instanceof Fire);
-  assert.ok(world.get(0, 1) instanceof Fire);
+test('oil burns after accumulating its configured fire-contact time', () => {
+  const world = worldFromRows(['####', '#of#', '####']);
+  world.random = () => 0.99;
+  stepN(world, Oil.ignitionDelay - 1);
+  assert.ok(world.get(1, 1) instanceof Oil);
+  stepN(world, 1);
+  assert.ok(world.get(1, 1) instanceof Fire);
   assert.equal(new Oil().flammable, true);
+});
+
+test('gaps in fire contact do not erase oil ignition progress', () => {
+  const world = worldFromRows(['####', '#of#', '####']);
+  world.step();
+  assert.ok(world.get(1, 1) instanceof Oil);
+
+  world.set(2, 1, new Stone());
+  world.step();
+  assert.ok(world.get(1, 1) instanceof Oil);
+
+  world.set(2, 1, new Fire());
+  world.step();
+  assert.ok(world.get(1, 1) instanceof Fire);
+});
+
+test('oil has a deterministic ignition delay', () => {
+  assert.equal(Oil.ignitionDelay, 2);
+  assert.equal(new Oil().flammable, true);
+});
+
+test('fire lifetime is half its previous 100-tick duration', () => {
+  assert.equal(Fire.lifetime, 50);
 });
 
 test('fire dissipates after its lifetime', () => {
