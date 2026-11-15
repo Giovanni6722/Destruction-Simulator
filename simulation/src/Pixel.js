@@ -20,10 +20,14 @@ export class Pixel {
   static isStatic = false;
   /** Whether this material can be ignited by fire. */
   static flammable = false;
+  /** Number of ticks of fire contact needed for ignition. */
+  static ignitionDelay = 1;
 
   constructor() {
     // Tick on which this pixel last ran update(); guarantees one update per tick.
     this.lastUpdatedTick = -1;
+    this.ignitionTicks = 0;
+    this.lastIgnitionTick = -1;
   }
 
   get type() { return this.constructor.type; }
@@ -32,6 +36,7 @@ export class Pixel {
   get density() { return this.constructor.density; }
   get isStatic() { return this.constructor.isStatic; }
   get flammable() { return this.constructor.flammable; }
+  get ignitionDelay() { return this.constructor.ignitionDelay; }
 
 
   canDisplace(other, rising = false) 
