@@ -6,27 +6,92 @@
     <title>Sandbox Physics</title>
     <link rel="stylesheet" href="style.css" />
   </head>
+
   <body>
     <main>
-      <h1>Sandbox Physics</h1>
+      <header class="app-header">
+        <h1>Sandbox Physics</h1>
+        <button id="account-button" type="button">Account</button>
+      </header>
+
       <div class="layout">
         <aside class="sidebar" aria-label="Drawing tools">
           <section>
             <h2>Elements</h2>
             <div id="materials" role="group" aria-label="Material"></div>
           </section>
-          <label class="brush-size">Brush size <input id="brush" type="range" min="1" max="5" value="2" /></label>
+
+          <label class="brush-size">
+            Brush size
+            <input id="brush" type="range" min="1" max="5" value="2" />
+          </label>
+
           <section>
             <h2>Shape</h2>
             <div id="shapes" role="group" aria-label="Brush shape">
-              <button type="button" data-shape="circle" aria-label="Circle" title="Circle" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /></svg></button>
-              <button type="button" data-shape="star" aria-label="Star" title="Star" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 2.9 6.2 6.8.8-5 4.7 1.3 6.7L12 17l-6 3.4 1.3-6.7-5-4.7 6.8-.8z" /></svg></button>
-              <button type="button" data-shape="square" aria-label="Square" title="Square" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" /></svg></button>
-              <button type="button" data-shape="rectangle" aria-label="Rectangle" title="Rectangle" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="10" /></svg></button>
-              <button type="button" data-shape="trapezoid" aria-label="Trapezoid" title="Trapezoid" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10l5 16H2z" /></svg></button>
+              <button
+                type="button"
+                data-shape="circle"
+                aria-label="Circle"
+                title="Circle"
+                aria-pressed="true"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="8" />
+                </svg>
+              </button>
+
+              <button
+                type="button"
+                data-shape="star"
+                aria-label="Star"
+                title="Star"
+                aria-pressed="false"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m12 2 2.9 6.2 6.8.8-5 4.7 1.3 6.7L12 17l-6 3.4 1.3-6.7-5-4.7 6.8-.8z" />
+                </svg>
+              </button>
+
+              <button
+                type="button"
+                data-shape="square"
+                aria-label="Square"
+                title="Square"
+                aria-pressed="false"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="4" y="4" width="16" height="16" />
+                </svg>
+              </button>
+
+              <button
+                type="button"
+                data-shape="rectangle"
+                aria-label="Rectangle"
+                title="Rectangle"
+                aria-pressed="false"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="2" y="7" width="20" height="10" />
+                </svg>
+              </button>
+
+              <button
+                type="button"
+                data-shape="trapezoid"
+                aria-label="Trapezoid"
+                title="Trapezoid"
+                aria-pressed="false"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M7 4h10l5 16H2z" />
+                </svg>
+              </button>
             </div>
           </section>
         </aside>
+
         <div class="workspace">
           <div class="toolbar">
             <label>
@@ -38,18 +103,190 @@
                 <option value="4">4×</option>
               </select>
             </label>
+
             <button id="pause">Pause</button>
             <button id="step" disabled>Step</button>
             <button id="undo" disabled>Undo</button>
             <button id="erase" aria-pressed="false">Erase</button>
             <button id="clear">Clear</button>
           </div>
+
           <p id="stats" class="note"></p>
-          <canvas id="canvas" width="120" height="90" role="img" aria-label="Physics sandbox: drag to paint, right-click and drag to erase"></canvas>
-          <p class="note">Drag to paint · right-click and drag to erase · hold still to keep pouring</p>
+
+          <canvas
+            id="canvas"
+            width="120"
+            height="90"
+            role="img"
+            aria-label="Physics sandbox: drag to paint, right-click and drag to erase"
+          ></canvas>
+
+          <p class="note">
+            Drag to paint · right-click and drag to erase · hold still to keep pouring
+          </p>
         </div>
       </div>
     </main>
+
+    <!-- Account Modal -->
+    <dialog id="account-modal" class="account-modal">
+      <div class="modal-header">
+        <h2 id="modal-title">Welcome Back</h2>
+
+        <button
+          id="close-account-modal"
+          class="modal-close"
+          type="button"
+          aria-label="Close"
+        >
+          &times;
+        </button>
+      </div>
+
+      <div class="modal-content">
+
+        <!-- Login View -->
+        <section id="login-view">
+          <p class="modal-description">Log in to your account.</p>
+
+          <form id="login-form">
+            <label>
+              Username
+              <input
+                id="login-username"
+                type="text"
+                autocomplete="username"
+                required
+              />
+            </label>
+
+            <label>
+              Password
+              <input
+                id="login-password"
+                type="password"
+                autocomplete="current-password"
+                required
+              />
+            </label>
+
+            <button class="account-submit" type="submit">Log In</button>
+          </form>
+
+          <p class="modal-switch">
+            Don't have an account?
+            <button id="show-register" type="button">Create one</button>
+          </p>
+        </section>
+
+        <!-- Registration View -->
+        <section id="register-view" hidden>
+          <p class="modal-description">Create an account to get started.</p>
+
+          <form id="register-form">
+            <label>
+              Username
+              <input
+                id="register-username"
+                type="text"
+                maxlength="25"
+                autocomplete="username"
+                required
+              />
+            </label>
+
+            <label>
+              Email
+              <input
+                id="register-email"
+                type="email"
+                autocomplete="email"
+                required
+              />
+            </label>
+
+            <label>
+              Password
+              <input
+                id="register-password"
+                type="password"
+                autocomplete="new-password"
+                required
+              />
+            </label>
+
+            <label>
+              Confirm Password
+              <input
+                id="register-confirm-password"
+                type="password"
+                autocomplete="new-password"
+                required
+              />
+            </label>
+
+            <button class="account-submit" type="submit">
+              Create Account
+            </button>
+          </form>
+
+          <p class="modal-switch">
+            Already have an account?
+            <button id="show-login" type="button">Log in</button>
+          </p>
+        </section>
+
+        <!-- Profile View -->
+        <section id="profile-view" hidden>
+          <p class="modal-description">Your account information.</p>
+
+          <form id="profile-form">
+            <label>
+              Username
+              <input
+                id="profile-edit-username"
+                type="text"
+                maxlength="25"
+                required
+              />
+            </label>
+
+            <label>
+              Email
+              <input
+                id="profile-edit-email"
+                type="email"
+                required
+              />
+            </label>
+
+            <button class="account-submit" type="submit">
+              Save Changes
+            </button>
+          </form>
+
+          <button
+            id="logout-button"
+            class="account-submit"
+            type="button"
+          >
+            Log Out
+          </button>
+        </section>
+
+        <p
+          id="account-message"
+          class="account-message"
+          role="status"
+          aria-live="polite"
+        ></p>
+      </div>
+    </dialog>
+
+    <!-- Simulator -->
     <script type="module" src="src/main.js"></script>
+
+    <!-- Account Management -->
+    <script type="module" src="src/account.js"></script>
   </body>
 </html>

@@ -33,3 +33,158 @@ canvas {
   .sidebar > section:first-child { grid-column: 1 / -1; }
   #materials { grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); }
 }
+
+/* ==============================
+   Account Management
+================================ */
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+#account-button {
+  padding: 8px 16px;
+  border-color: #4cc2ff;
+}
+
+/* Modal container */
+.account-modal {
+  width: min(420px, calc(100% - 40px));
+  max-height: 85vh;
+  padding: 0;
+  border: 1px solid #3a4152;
+  border-radius: 12px;
+  background: #111722;
+  color: #e6e8ee;
+}
+
+.account-modal[open] {
+  display: block;
+}
+
+.account-modal::backdrop {
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(3px);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px;
+  border-bottom: 1px solid #2a3140;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.modal-close {
+  padding: 2px 9px;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  border: none;
+  background: transparent;
+}
+
+.modal-content {
+  padding: 20px;
+}
+
+.modal-description {
+  margin: 0 0 18px;
+  color: #aeb8c8;
+  font-size: 0.9rem;
+}
+
+.account-modal form {
+  display: grid;
+  gap: 14px;
+}
+
+.account-modal form label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+
+.account-modal input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #3a4152;
+  border-radius: 6px;
+  background: #0b0d12;
+  color: #e6e8ee;
+  font: inherit;
+}
+
+.account-modal input:focus {
+  outline: 2px solid #4cc2ff;
+  outline-offset: 1px;
+}
+
+.account-submit {
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid #4cc2ff;
+  border-radius: 6px;
+  background: #1b3b50;
+  color: #e6e8ee;
+  font-weight: 600;
+}
+
+.account-submit:hover {
+  background: #24516d;
+}
+
+.modal-switch {
+  margin: 18px 0 0;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #aeb8c8;
+}
+
+.modal-switch button {
+  padding: 4px 6px;
+  border: none;
+  background: transparent;
+  color: #4cc2ff;
+  font-weight: 600;
+}
+
+.modal-switch button:hover {
+  text-decoration: underline;
+}
+
+.account-message {
+  min-height: 20px;
+  margin: 14px 0 0;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.account-modal section[hidden] {
+  display: none !important;
+}
+
+#logout-button {
+  margin-top: 18px;
+  border-color: #a64b4b;
+  background: #3b2025;
+}
+
+#logout-button:hover {
+  background: #542a30;
+}
+
+@media (max-width: 500px) {
+  .account-modal {
+    width: calc(100% - 32px);
+  }
+}
