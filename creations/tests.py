@@ -170,6 +170,42 @@ class CreationDatabaseTests(unittest.TestCase):
                 {"cells": []}
             )
 
+    def test_non_string_title_rejected(self):
+        with self.assertRaises(ValueError):
+            create_creation(
+                self.user_id,
+                123,
+                {"cells": []}
+            )
+
+    def test_non_string_description_rejected(self):
+        with self.assertRaises(ValueError):
+            create_creation(
+                self.user_id,
+                "Creation",
+                {"cells": []},
+                description=["not", "a", "string"]
+            )
+
+    def test_description_length_validation(self):
+        with self.assertRaises(ValueError):
+            create_creation(
+                self.user_id,
+                "Creation",
+                {"cells": []},
+                description="A" * 1001  # Description too long
+            )
+
+    def test_description_at_max_length_accepted(self):
+        creation = create_creation(
+            self.user_id,
+            "Creation",
+            {"cells": []},
+            description="A" * 1000
+        )
+
+        self.assertEqual(len(creation["description"]), 1000)
+
     def test_title_whitespace_trimmed(self):
         creation = create_creation(
             self.user_id,

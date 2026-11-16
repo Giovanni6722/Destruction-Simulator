@@ -7,7 +7,11 @@ from bson.errors import InvalidId
 from pymongo import DESCENDING
 
 from accounts.mongo import users_collection
-from database.creation_schema import creation_schema
+from database.creation_schema import (
+    DESCRIPTION_MAX_LENGTH,
+    TITLE_MAX_LENGTH,
+    creation_schema,
+)
 
 
 
@@ -48,10 +52,21 @@ def create_creation(user_id, title, simulation_data,
 
 
 
+    if not isinstance(title, str):
+        raise ValueError("Title must be a string.")
+
     title = title.strip()
 
-    if not 1 <= len(title) <= 100:
-        raise ValueError("Title must be 1-100 characters.")
+    if not 1 <= len(title) <= TITLE_MAX_LENGTH:
+        raise ValueError(f"Title must be 1-{TITLE_MAX_LENGTH} characters.")
+
+    if not isinstance(description, str):
+        raise ValueError("Description must be a string.")
+
+    if len(description) > DESCRIPTION_MAX_LENGTH:
+        raise ValueError(
+            f"Description must be at most {DESCRIPTION_MAX_LENGTH} characters."
+        )
 
     if not isinstance(simulation_data, dict):
         raise ValueError("Simulation data must be an object.")
