@@ -14,6 +14,10 @@ export class Pixel {
   /** Single character used when printing grids (tests and debugging). */
   static symbol = '?';
   static color = '#ff00ff';
+  /** Fraction of pixels that receive a small color variation. */
+  static colorVariationChance = 0.3;
+  /** Maximum proportional change applied to a varied pixel's color. */
+  static colorVariation = 0.08;
   /** Heavier pixels sink through lighter, non-static ones. */
   static density = 0;
   /** Static pixels never move (stone, walls). */
@@ -22,8 +26,17 @@ export class Pixel {
   static flammable = false;
   /** Number of ticks of fire contact needed for ignition. */
   static ignitionDelay = 1;
+  /** Optional number of ticks a fire created from this pixel should last. */
+  static burnRate = null;
+  /** Whether fire should focus on this material instead of igniting all neighbors. */
+  static ignitionMode = 'all';
 
   constructor() {
+    this._color = variedColor(
+      this.constructor.color,
+      this.constructor.colorVariationChance,
+      this.constructor.colorVariation,
+    );
     // Tick on which this pixel last ran update(); guarantees one update per tick.
     this.lastUpdatedTick = -1;
     this.ignitionTicks = 0;
@@ -32,11 +45,13 @@ export class Pixel {
 
   get type() { return this.constructor.type; }
   get symbol() { return this.constructor.symbol; }
-  get color() { return this.constructor.color; }
+  get color() { return this._color; }
   get density() { return this.constructor.density; }
   get isStatic() { return this.constructor.isStatic; }
   get flammable() { return this.constructor.flammable; }
   get ignitionDelay() { return this.constructor.ignitionDelay; }
+  get burnRate() { return this.constructor.burnRate; }
+  get ignitionMode() { return this.constructor.ignitionMode; }
 
 
   canDisplace(other, rising = false) 
@@ -54,4 +69,21 @@ export class Pixel {
    */
   // eslint-disable-next-line no-unused-vars
   update(x, y, world) {}
+}
+
+let colorSeed = 0x6d2b79f5;
+
+function nextColorRandom() {
+  colorSeed = (Math.imul(colorSeed, 1664525) + 1013904223) >>> 0;
+  return colorSeed / 0x100000000;
+}
+
+function variedColor(baseColor, chance, amount) {
+  if (nextColorRandom() >= chance || amount <= 0) return baseColor;
+
+  const factor = 1 + ((nextColorRandom() * 2 - 1) * amount);
+  const channels = [1, 3, 5].map((index) => (
+    Math.max(0, Math.min(255, Math.round(parseInt(baseColor.slice(index, index + 2), 16) * factor)))
+  ));
+  return `#${channels.map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
 }

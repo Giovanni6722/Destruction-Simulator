@@ -7,8 +7,8 @@ export function createRenderer(ctx, width, height) {
   const background = rgb(BACKGROUND);
   const colors = new Map();
   const colorOf = (pixel) => {
-    if (!colors.has(pixel.type)) colors.set(pixel.type, rgb(pixel.color));
-    return colors.get(pixel.type);
+    if (!colors.has(pixel.color)) colors.set(pixel.color, rgb(pixel.color));
+    return colors.get(pixel.color);
   };
 
   return (world) => {

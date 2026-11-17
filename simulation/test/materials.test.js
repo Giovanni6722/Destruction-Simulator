@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { MATERIALS, createPixel, Fire, Oil, Sand, Stone, Steam, Water } from '../src/materials/index.js';
+import { MATERIALS, createPixel, Fire, Oil, Plant, Sand, Stone, Steam, Water } from '../src/materials/index.js';
 import { createRandom } from '../src/random.js';
 import { worldFromRows, rowsFromWorld, stepN } from './helpers.js';
 
@@ -21,6 +21,15 @@ test('createPixel builds materials by type and rejects unknown ones', () => {
   assert.ok(createPixel('steam') instanceof Steam);
   assert.ok(createPixel('fire') instanceof Fire);
   assert.throws(() => createPixel('unobtainium'));
+});
+
+test('material pixels mostly use their base color with occasional variation', () => {
+  const pixels = Array.from({ length: 100 }, () => createPixel('water'));
+  const varied = pixels.filter((pixel) => pixel.color !== Water.color);
+
+  assert.ok(varied.length > 0);
+  assert.ok(varied.length < pixels.length / 2);
+  for (const pixel of varied) assert.match(pixel.color, /^#[0-9a-f]{6}$/);
 });
 
 // --- Hand-computed grids ---
@@ -75,6 +84,16 @@ test('sand displaces water', () => {
   assert.deepEqual(rowsFromWorld(world), ['w', 's']);
 });
 
+test('plant consumes the water that causes it to grow', () => {
+  const world = worldFromRows(['#####', '#.#.#', '#.#.#', '#pw##', '#####']);
+  world.set(1, 3, createPixel('plant', { growthDirection: [0, -1] }));
+  world.random = () => 0;
+  world.step();
+  assert.equal(world.get(1, 2)?.type, 'plant');
+  assert.equal(world.get(2, 3), null);
+  assert.equal(new Plant().flammable, true);
+});
+
 test('steam rises', () => {
   const world = worldFromRows(['...', '.v.', '...']);
   world.step();
@@ -117,6 +136,20 @@ test('fire turns water into steam and is extinguished', () => {
   world.step();
   assert.deepEqual(rowsFromWorld(world), ['.', 'v', '#']);
   assert.ok(world.get(0, 1) instanceof Steam);
+});
+
+test('fire stays beside a plant until it ignites it downward', () => {
+  const world = worldFromRows(['###', '#f#', '#p#', '###']);
+  stepN(world, Plant.ignitionDelay);
+  assert.ok(world.get(1, 2) instanceof Fire);
+});
+
+test('a fire heats only one adjacent plant at a time', () => {
+  const world = worldFromRows(['#####', '#p#p#', '#pfp#', '#####']);
+  world.random = () => 0;
+  world.step();
+  assert.equal(world.get(3, 2).ignitionTicks, 1);
+  assert.equal(world.get(1, 2).ignitionTicks, 0);
 });
 
 test('oil burns after accumulating its configured fire-contact time', () => {
