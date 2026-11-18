@@ -6,6 +6,7 @@ from bson import ObjectId
 
 from accounts.mongo import use_test_database
 from accounts.users import create_user
+from .materials import GRID_HEIGHT, GRID_WIDTH
 from .mongo import (
     create_creation,
     creations_collection,
@@ -13,6 +14,16 @@ from .mongo import (
     get_public_creations,
     get_user_creations,
 )
+
+
+def scene(fill=None):
+    """Build a valid 120x90 scene with every cell set to fill."""
+    return {
+        "version": 1,
+        "width": GRID_WIDTH,
+        "height": GRID_HEIGHT,
+        "cells": [fill] * (GRID_WIDTH * GRID_HEIGHT),
+    }
 
 
 class CreationDatabaseTests(unittest.TestCase):
@@ -34,11 +45,7 @@ class CreationDatabaseTests(unittest.TestCase):
         creation = create_creation(
             self.user_id,
             "My Sand Castle",
-            {
-                "width": 120,
-                "height": 90,
-                "cells": []
-            }
+            scene("sand")
         )
 
         saved = creations_collection().find_one({
@@ -54,7 +61,7 @@ class CreationDatabaseTests(unittest.TestCase):
         creation = create_creation(
             self.user_id,
             "Water Simulation",
-            {"cells": []}
+            scene()
         )
 
         saved = get_creation(str(creation["_id"]))
@@ -68,7 +75,7 @@ class CreationDatabaseTests(unittest.TestCase):
         creation = create_creation(
             self.user_id,
             "Approved Creation",
-            {"cells": []}
+            scene()
         )
 
         creations_collection().update_one(
@@ -85,7 +92,7 @@ class CreationDatabaseTests(unittest.TestCase):
         create_creation(
             self.user_id,
             "Pending Creation",
-            {"cells": []}
+            scene()
         )
 
         self.assertEqual(get_public_creations(), [])
@@ -94,7 +101,7 @@ class CreationDatabaseTests(unittest.TestCase):
         creation = create_creation(
             self.user_id,
             "Rejected Creation",
-            {"cells": []}
+            scene()
         )
 
         creations_collection().update_one(
@@ -115,13 +122,13 @@ class CreationDatabaseTests(unittest.TestCase):
         create_creation(
             self.user_id,
             "My Creation",
-            {"cells": []}
+            scene()
         )
 
         create_creation(
             other_user,
             "Someone Else's Creation",
-            {"cells": []}
+            scene()
         )
 
         results = get_user_creations(str(self.user_id))
@@ -134,7 +141,7 @@ class CreationDatabaseTests(unittest.TestCase):
             create_creation(
                 self.user_id,
                 "",
-                {"cells": []}
+                scene()
             )
 
     def test_invalid_simulation_data_rejected(self):
@@ -151,7 +158,7 @@ class CreationDatabaseTests(unittest.TestCase):
             create_creation(
                 ObjectId(),
                 "Creation by Nonexistent User",
-                {"cells": []}
+                scene()
             )
 
     def test_invalid_user_id_rejected(self):
@@ -159,7 +166,7 @@ class CreationDatabaseTests(unittest.TestCase):
             create_creation(
                 "invalid-id",
                 "Creation by Invalid User",
-                {"cells": []}
+                scene()
             )
 
     def test_title_length_validation(self):
@@ -167,7 +174,7 @@ class CreationDatabaseTests(unittest.TestCase):
             create_creation(
                 self.user_id,
                 "A" * 101,  # Title too long
-                {"cells": []}
+                scene()
             )
 
     def test_non_string_title_rejected(self):
@@ -175,7 +182,7 @@ class CreationDatabaseTests(unittest.TestCase):
             create_creation(
                 self.user_id,
                 123,
-                {"cells": []}
+                scene()
             )
 
     def test_non_string_description_rejected(self):
@@ -183,7 +190,7 @@ class CreationDatabaseTests(unittest.TestCase):
             create_creation(
                 self.user_id,
                 "Creation",
-                {"cells": []},
+                scene(),
                 description=["not", "a", "string"]
             )
 
@@ -192,7 +199,7 @@ class CreationDatabaseTests(unittest.TestCase):
             create_creation(
                 self.user_id,
                 "Creation",
-                {"cells": []},
+                scene(),
                 description="A" * 1001  # Description too long
             )
 
@@ -200,7 +207,7 @@ class CreationDatabaseTests(unittest.TestCase):
         creation = create_creation(
             self.user_id,
             "Creation",
-            {"cells": []},
+            scene(),
             description="A" * 1000
         )
 
@@ -210,7 +217,44 @@ class CreationDatabaseTests(unittest.TestCase):
         creation = create_creation(
             self.user_id,
             "   Trimmed Title   ",
-            {"cells": []}
+            scene()
         )
 
         self.assertEqual(creation["title"], "Trimmed Title")
+
+    def test_wrong_size_rejected(self):
+        data = scene()
+        data["width"] = 100
+
+        with self.assertRaises(ValueError):
+            create_creation(self.user_id, "Wrong Size", data)
+
+    def test_wrong_cell_count_rejected(self):
+        data = scene()
+        data["cells"] = data["cells"][:-1]
+
+        with self.assertRaises(ValueError):
+            create_creation(self.user_id, "Wrong Cell Count", data)
+
+    def test_unknown_material_rejected(self):
+        data = scene("sand")
+        data["cells"][0] = "lava"
+
+        with self.assertRaises(ValueError):
+            create_creation(self.user_id, "Unknown Material", data)
+
+    def test_missing_version_rejected(self):
+        data = scene()
+        del data["version"]
+
+        with self.assertRaises(ValueError):
+            create_creation(self.user_id, "Missing Version", data)
+
+    def test_mixed_materials_accepted(self):
+        data = scene()
+        data["cells"][0] = "sand"
+        data["cells"][1] = "water"
+
+        creation = create_creation(self.user_id, "Mixed", data)
+
+        self.assertEqual(creation["simulation_data"]["cells"][1], "water")

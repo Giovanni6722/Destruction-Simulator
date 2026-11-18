@@ -12,7 +12,39 @@ from database.creation_schema import (
     TITLE_MAX_LENGTH,
     creation_schema,
 )
+from .materials import COLORS, GRID_HEIGHT, GRID_WIDTH
 
+SIMULATION_DATA_VERSION = 1
+
+
+def validate_simulation_data(simulation_data):
+    """Check a saved scene matches the format the frontend sends.
+
+    {"version": 1, "width": 120, "height": 90, "cells": [<material or None>, ...]}
+    """
+    if not isinstance(simulation_data, dict):
+        raise ValueError("Simulation data must be an object.")
+
+    if simulation_data.get("version") != SIMULATION_DATA_VERSION:
+        raise ValueError(
+            f"Simulation data version must be {SIMULATION_DATA_VERSION}."
+        )
+
+    if (simulation_data.get("width") != GRID_WIDTH
+            or simulation_data.get("height") != GRID_HEIGHT):
+        raise ValueError(
+            f"Simulation size must be {GRID_WIDTH}x{GRID_HEIGHT}."
+        )
+
+    cells = simulation_data.get("cells")
+    expected = GRID_WIDTH * GRID_HEIGHT
+
+    if not isinstance(cells, list) or len(cells) != expected:
+        raise ValueError(f"Cells must be a list of {expected} entries.")
+
+    for cell in cells:
+        if cell is not None and (not isinstance(cell, str) or cell not in COLORS):
+            raise ValueError(f"Unknown material: {cell!r}.")
 
 
 def creations_collection():
@@ -68,8 +100,7 @@ def create_creation(user_id, title, simulation_data,
             f"Description must be at most {DESCRIPTION_MAX_LENGTH} characters."
         )
 
-    if not isinstance(simulation_data, dict):
-        raise ValueError("Simulation data must be an object.")
+    validate_simulation_data(simulation_data)
 
     creation = {
         "user_id": user_id,
