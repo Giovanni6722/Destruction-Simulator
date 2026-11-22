@@ -1,8 +1,10 @@
 """LLM moderation for creations: title, description and a render of the scene."""
 
+import base64
 import json
 
 from django.conf import settings
+from groq import Groq
 
 from database.creation_schema import MODERATION_REASON_MAX_LENGTH
 from . import mongo
@@ -31,12 +33,47 @@ class ModerationError(Exception):
     """The LLM could not give a usable verdict."""
 
 
+MODEL = "qwen/qwen3.8-27b"  # Preview on Groq: may be renamed or retired.
+TIMEOUT_SECONDS = 10
+MAX_IMAGE_BYTES = 20 * 1024 * 1024  # Groq's per-image limit.
+
+
 def _call_llm(system_prompt, user_content, image_png):
     """Send one request with text and a PNG image; return the reply text.
 
-    The only provider-specific code. Use a 10 second timeout.
+    The only provider-specific code.
     """
-    raise NotImplementedError
+    if len(image_png) > MAX_IMAGE_BYTES:
+        raise ValueError("Rendered image is larger than the LLM accepts.")
+
+    # max_retries=0: the SDK retries twice by default, and three 10 second
+    # attempts would outlast gunicorn's 30 second request timeout.
+    client = Groq(
+        api_key=settings.LLM_API_KEY,
+        timeout=TIMEOUT_SECONDS,
+        max_retries=0,
+    )
+    image_url = "data:image/png;base64," + base64.b64encode(image_png).decode()
+
+    completion = client.chat.completions.create(
+        model=MODEL,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": user_content},
+                    {"type": "image_url", "image_url": {"url": image_url}},
+                ],
+            },
+        ],
+        response_format={"type": "json_object"},
+        reasoning_effort="none",
+        reasoning_format="hidden",
+        temperature=0,
+        max_completion_tokens=300,
+    )
+    return completion.choices[0].message.content
 
 
 def _parse(reply):

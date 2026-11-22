@@ -16,4 +16,5 @@ COLORS = {
     "oil": "#a16207",
     "steam": "#cbd5e1",
     "fire": "#f97316",
+    "plant": "#22c55e",
 }
