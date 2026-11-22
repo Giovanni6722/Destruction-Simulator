@@ -184,7 +184,7 @@ def set_moderation_status(creation_id, status, reason):
         {
             "$set": {
                 "moderation_status": status,
-                "moderation_reason": str(reason)[:MODERATION_REASON_MAX_LENGTH],
+                "moderation_reason": str(reason or "")[:MODERATION_REASON_MAX_LENGTH],
                 "moderated_at": datetime.now(timezone.utc),
             },
             "$inc": {"moderation_attempts": 1},
