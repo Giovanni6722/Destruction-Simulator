@@ -6,6 +6,7 @@ export class World {
     this.grid = new Grid(width, height);
     this.tick = 0;
     this.random = createRandom(seed);
+    this.plantComponents = new Map();
     // Set by tryMove when it displaces a pixel that hasn't updated this tick.
     this.displacedPending = false;
   }
@@ -20,6 +21,7 @@ export class World {
   /** Advances the whole world by one tick. */
   step() {
     this.tick++;
+    this.plantComponents.clear();
     do {
       this.displacedPending = false;
       this.scan();
