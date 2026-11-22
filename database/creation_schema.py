@@ -48,6 +48,9 @@ creation_schema = {
             "moderation_attempts": {
                 "bsonType": "int",
                 "minimum": 0
+            },
+            "cells_hash": {
+                "bsonType": "string"
             }
         }
     }
