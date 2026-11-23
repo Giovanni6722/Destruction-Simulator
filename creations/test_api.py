@@ -1,7 +1,8 @@
 import json
+from unittest.mock import patch
 
 import mongomock
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings
 
 from accounts import users
 from accounts.mongo import use_test_database
@@ -10,6 +11,9 @@ from .mongo import creations_collection
 from . import mongo
 
 
+# No key, so create_creation's moderation call fails fast and the creation
+# stays pending, without reaching the real LLM.
+@override_settings(LLM_API_KEY="")
 class CreationsAPITests(SimpleTestCase):
 
     def setUp(self):
@@ -84,6 +88,39 @@ class CreationsAPITests(SimpleTestCase):
 
         self.assertIsNotNone(saved)
         self.assertEqual(saved["moderation_status"], "pending")
+
+    @override_settings(LLM_API_KEY="test-key")
+    @patch("creations.moderation._call_llm")
+    def test_create_creation_is_moderated(self, llm):
+        llm.return_value = json.dumps({"verdict": "approved", "reason": "ok"})
+        self.login()
+
+        response = self.post_json(
+            "/api/creations/create/",
+            {"title": "Approved Creation", "simulation_data": self.scene("sand")},
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["moderation_status"], "approved")
+        gallery = self.client.get("/api/creations/").json()["creations"]
+        self.assertEqual([c["title"] for c in gallery], ["Approved Creation"])
+
+    @override_settings(LLM_API_KEY="test-key")
+    @patch("creations.moderation._call_llm")
+    def test_create_creation_stays_pending_when_llm_times_out(self, llm):
+        llm.side_effect = TimeoutError
+        self.login()
+
+        response = self.post_json(
+            "/api/creations/create/",
+            {"title": "Slow Creation", "simulation_data": self.scene("sand")},
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["moderation_status"], "pending")
+        self.assertEqual(response.json()["moderation_reason"], "")
+        gallery = self.client.get("/api/creations/").json()["creations"]
+        self.assertEqual(gallery, [])
 
     def test_create_creation_missing_fields(self):
         self.login()
