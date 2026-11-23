@@ -1,3 +1,6 @@
+TITLE_MAX_LENGTH = 100
+DESCRIPTION_MAX_LENGTH = 1000
+MODERATION_REASON_MAX_LENGTH = 500
 
 creation_schema = {
     "$jsonSchema": {
@@ -16,10 +19,11 @@ creation_schema = {
             "title": {
                 "bsonType": "string",
                 "minLength": 1,
-                "maxLength": 100
+                "maxLength": TITLE_MAX_LENGTH
             },
             "description": {
-                "bsonType": "string"
+                "bsonType": "string",
+                "maxLength": DESCRIPTION_MAX_LENGTH
             },
             "simulation_data": {
                 "bsonType": "object"
@@ -33,6 +37,20 @@ creation_schema = {
                     "approved",
                     "rejected"
                 ]
+            },
+            "moderation_reason": {
+                "bsonType": "string",
+                "maxLength": MODERATION_REASON_MAX_LENGTH
+            },
+            "moderated_at": {
+                "bsonType": "date"
+            },
+            "moderation_attempts": {
+                "bsonType": "int",
+                "minimum": 0
+            },
+            "cells_hash": {
+                "bsonType": "string"
             }
         }
     }

@@ -94,6 +94,9 @@ DATABASES = {
 MONGODB_URI = os.environ.get('MONGODB_URI', '')
 MONGODB_DB_NAME = os.environ.get('MONGODB_DB_NAME', 'destruction_simulator')
 
+# API key for the LLM provider; set in the Render dashboard, never committed.
+LLM_API_KEY = os.environ.get('LLM_API_KEY', '')
+
 # Sessions are kept in a signed cookie so logins don't depend on the SQLite file either.
 SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 SESSION_COOKIE_SECURE = not DEBUG

@@ -1,5 +1,7 @@
 """MongoDB storage for user creations."""
 
+import hashlib
+import json
 from datetime import datetime, timezone
 
 from bson import ObjectId
@@ -7,8 +9,51 @@ from bson.errors import InvalidId
 from pymongo import DESCENDING
 
 from accounts.mongo import users_collection
-from database.creation_schema import creation_schema
+from database.creation_schema import (
+    DESCRIPTION_MAX_LENGTH,
+    MODERATION_REASON_MAX_LENGTH,
+    TITLE_MAX_LENGTH,
+    creation_schema,
+)
+from .materials import COLORS, GRID_HEIGHT, GRID_WIDTH
 
+SIMULATION_DATA_VERSION = 1
+FINAL_MODERATION_STATUSES = ("approved", "rejected")
+
+
+def cells_hash(cells):
+    """Fingerprint a scene's cells so identical resubmissions can be spotted."""
+    return hashlib.sha256(json.dumps(cells).encode()).hexdigest()
+
+
+def validate_simulation_data(simulation_data):
+    """Check a saved scene matches the format the frontend sends.
+
+    {"version": 1, "width": 120, "height": 90, "cells": [<material or None>, ...]}
+    """
+    if not isinstance(simulation_data, dict):
+        raise ValueError("Simulation data must be an object.")
+
+    if simulation_data.get("version") != SIMULATION_DATA_VERSION:
+        raise ValueError(
+            f"Simulation data version must be {SIMULATION_DATA_VERSION}."
+        )
+
+    if (simulation_data.get("width") != GRID_WIDTH
+            or simulation_data.get("height") != GRID_HEIGHT):
+        raise ValueError(
+            f"Simulation size must be {GRID_WIDTH}x{GRID_HEIGHT}."
+        )
+
+    cells = simulation_data.get("cells")
+    expected = GRID_WIDTH * GRID_HEIGHT
+
+    if not isinstance(cells, list) or len(cells) != expected:
+        raise ValueError(f"Cells must be a list of {expected} entries.")
+
+    for cell in cells:
+        if cell is not None and (not isinstance(cell, str) or cell not in COLORS):
+            raise ValueError(f"Unknown material: {cell!r}.")
 
 
 def creations_collection():
@@ -29,6 +74,7 @@ def creations_collection():
     creations.create_index("user_id")
     creations.create_index("moderation_status")
     creations.create_index("created_at")
+    creations.create_index("cells_hash")
 
     return creations
 
@@ -48,13 +94,23 @@ def create_creation(user_id, title, simulation_data,
 
 
 
+    if not isinstance(title, str):
+        raise ValueError("Title must be a string.")
+
     title = title.strip()
 
-    if not 1 <= len(title) <= 100:
-        raise ValueError("Title must be 1-100 characters.")
+    if not 1 <= len(title) <= TITLE_MAX_LENGTH:
+        raise ValueError(f"Title must be 1-{TITLE_MAX_LENGTH} characters.")
 
-    if not isinstance(simulation_data, dict):
-        raise ValueError("Simulation data must be an object.")
+    if not isinstance(description, str):
+        raise ValueError("Description must be a string.")
+
+    if len(description) > DESCRIPTION_MAX_LENGTH:
+        raise ValueError(
+            f"Description must be at most {DESCRIPTION_MAX_LENGTH} characters."
+        )
+
+    validate_simulation_data(simulation_data)
 
     creation = {
         "user_id": user_id,
@@ -62,7 +118,9 @@ def create_creation(user_id, title, simulation_data,
         "description": description,
         "simulation_data": simulation_data,
         "created_at": datetime.now(timezone.utc),
-        "moderation_status": "pending"
+        "moderation_status": "pending",
+        "moderation_attempts": 0,
+        "cells_hash": cells_hash(simulation_data["cells"]),
     }
 
     result = creations_collection().insert_one(creation)
@@ -108,3 +166,54 @@ def get_user_creations(user_id):
         .find({"user_id": user_id})
         .sort("created_at", DESCENDING)
     )
+
+
+def set_moderation_status(creation_id, status, reason):
+    """Record a final moderation decision and count the attempt."""
+
+    if status not in FINAL_MODERATION_STATUSES:
+        raise ValueError("Status must be approved or rejected.")
+
+    try:
+        creation_id = ObjectId(creation_id)
+    except (InvalidId, TypeError):
+        raise ValueError("Invalid creation ID.")
+
+    result = creations_collection().update_one(
+        {"_id": creation_id},
+        {
+            "$set": {
+                "moderation_status": status,
+                "moderation_reason": str(reason or "")[:MODERATION_REASON_MAX_LENGTH],
+                "moderated_at": datetime.now(timezone.utc),
+            },
+            "$inc": {"moderation_attempts": 1},
+        },
+    )
+
+    return result.matched_count == 1
+
+
+def record_moderation_failure(creation_id):
+    """Count a failed moderation attempt; the creation stays pending."""
+
+    try:
+        creation_id = ObjectId(creation_id)
+    except (InvalidId, TypeError):
+        raise ValueError("Invalid creation ID.")
+
+    result = creations_collection().update_one(
+        {"_id": creation_id},
+        {"$inc": {"moderation_attempts": 1}},
+    )
+
+    return result.matched_count == 1
+
+
+def was_rejected_before(hash_value):
+    """Check whether a creation with these exact cells was already rejected."""
+
+    return creations_collection().count_documents(
+        {"cells_hash": hash_value, "moderation_status": "rejected"},
+        limit=1,
+    ) > 0
