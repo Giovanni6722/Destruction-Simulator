@@ -105,6 +105,23 @@ class CreationsAPITests(SimpleTestCase):
         gallery = self.client.get("/api/creations/").json()["creations"]
         self.assertEqual([c["title"] for c in gallery], ["Approved Creation"])
 
+    @override_settings(LLM_API_KEY="test-key")
+    @patch("creations.moderation._call_llm")
+    def test_create_creation_stays_pending_when_llm_times_out(self, llm):
+        llm.side_effect = TimeoutError
+        self.login()
+
+        response = self.post_json(
+            "/api/creations/create/",
+            {"title": "Slow Creation", "simulation_data": self.scene("sand")},
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["moderation_status"], "pending")
+        self.assertEqual(response.json()["moderation_reason"], "")
+        gallery = self.client.get("/api/creations/").json()["creations"]
+        self.assertEqual(gallery, [])
+
     def test_create_creation_missing_fields(self):
         self.login()
 

@@ -30,6 +30,8 @@ def serialize_creation(creation):
         "simulation_data": creation["simulation_data"],
         "created_at": creation["created_at"].isoformat(),
         "moderation_status": creation["moderation_status"],
+        # Not set until moderation gives a verdict.
+        "moderation_reason": creation.get("moderation_reason", ""),
     }
 
 @require_POST
