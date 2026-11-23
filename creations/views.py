@@ -5,6 +5,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from accounts import users
 from . import mongo
+from .moderation import moderate_creation
 
 
 def parse_json(request):
@@ -62,6 +63,11 @@ def create_creation(request):
         )
     except ValueError as error:
         return JsonResponse({"error": str(error)}, status=400)
+
+    # If the LLM fails, the creation stays pending.
+    status, reason = moderate_creation(creation)
+    creation["moderation_status"] = status
+    creation["moderation_reason"] = reason
 
     return JsonResponse(serialize_creation(creation), status=201)
 
