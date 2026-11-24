@@ -8,15 +8,20 @@
   </head>
   <body>
     <main>
-      <h1>Sandbox Physics</h1>
+      <header class="banner">
+        <h1>Sandbox Physics</h1>
+      </header>
       <div class="layout">
         <aside class="sidebar" aria-label="Drawing tools">
-          <section>
+          <section class="panel">
             <h2>Elements</h2>
             <div id="materials" role="group" aria-label="Material"></div>
           </section>
-          <label class="brush-size">Brush size <input id="brush" type="range" min="1" max="5" value="2" /></label>
-          <section>
+          <section class="panel">
+            <h2><label for="brush">Brush size</label></h2>
+            <div><input id="brush" type="range" min="1" max="5" value="2" /></div>
+          </section>
+          <section class="panel">
             <h2>Shape</h2>
             <div id="shapes" role="group" aria-label="Brush shape">
               <button type="button" data-shape="circle" aria-label="Circle" title="Circle" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /></svg></button>
@@ -28,25 +33,32 @@
           </section>
         </aside>
         <div class="workspace">
-          <div class="toolbar">
-            <label>
-              Speed
-              <select id="speed">
-                <option value="0.25">¼×</option>
-                <option value="1" selected>1×</option>
-                <option value="2">2×</option>
-                <option value="4">4×</option>
-              </select>
-            </label>
-            <button id="pause">Pause</button>
-            <button id="step" disabled>Step</button>
-            <button id="undo" disabled>Undo</button>
-            <button id="erase" aria-pressed="false">Erase</button>
-            <button id="clear">Clear</button>
+          <section class="panel">
+            <h2>Controls</h2>
+            <div class="toolbar">
+              <label>
+                Speed
+                <select id="speed">
+                  <option value="0.25">¼×</option>
+                  <option value="1" selected>1×</option>
+                  <option value="2">2×</option>
+                  <option value="4">4×</option>
+                </select>
+              </label>
+              <button id="pause">Pause</button>
+              <button id="step" disabled>Step</button>
+              <button id="undo" disabled>Undo</button>
+              <button id="erase" aria-pressed="false">Erase</button>
+              <button id="clear">Clear</button>
+            </div>
+          </section>
+          <div class="screen">
+            <canvas id="canvas" width="120" height="90" role="img" aria-label="Physics sandbox: drag to paint, right-click and drag to erase"></canvas>
           </div>
-          <p id="stats" class="note"></p>
-          <canvas id="canvas" width="120" height="90" role="img" aria-label="Physics sandbox: drag to paint, right-click and drag to erase"></canvas>
-          <p class="note">Drag to paint · right-click and drag to erase · hold still to keep pouring</p>
+          <footer class="statusbar">
+            <p class="note">Drag to paint · right-click and drag to erase · hold still to keep pouring</p>
+            <p id="stats" class="note"></p>
+          </footer>
         </div>
       </div>
     </main>
