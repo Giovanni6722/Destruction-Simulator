@@ -5,6 +5,8 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    - cron: "17 9 * * *" # nightly eval, to catch the provider changing the model
 
 permissions:
   contents: read
@@ -103,6 +105,33 @@ jobs:
       - name: Run frontend tests
         working-directory: frontend
         run: npm test
+
+  eval:
+    name: Eval
+    needs: test
+    if: github.event_name == 'pull_request' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+          cache: pip
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run evaluation suite
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        run: python -m evals.run
+
+      - name: Show results on the run page
+        if: always()
+        run: if [ -f evals/results/latest.md ]; then cat evals/results/latest.md >> "$GITHUB_STEP_SUMMARY"; fi
 
   deploy:
     name: Deploy
