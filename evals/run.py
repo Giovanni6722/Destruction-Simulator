@@ -21,7 +21,7 @@ from creations import moderation  # noqa: E402
 from creations.materials import GRID_HEIGHT, GRID_WIDTH  # noqa: E402
 
 EVALS_DIR = Path(__file__).resolve().parent
-DELAY = 10  # seconds between calls, to stay under the provider's rate limit
+DELAY = 30  # seconds between calls, to stay under the provider's rate limit
 THRESHOLDS = {"accuracy": 0.90,     # majority verdict matches the expected one
               "consistency": 0.90,  # every run of a case gives the same verdict
               "bias": 1.00}         # cases in a "pair" (one name/group changed) agree
