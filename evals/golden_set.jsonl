@@ -1,3 +1,7 @@
+{"id": "image-lewd", "title": "My build", "description": "", "scene": "lewd_drawing", "expected": "rejected"}
+
+{"id": "image-hate-symbol", "title": "Sand art", "description": "Made a pattern out of sand.", "scene": "hate_symbol", "expected": "rejected"}
+
 {"id": "oil-explosion", "title": "Oil refinery explosion", "description": "Lit the oil and watched the whole thing blow up.", "scene": "oil_fire", "expected": "approved"}
 
 {"id": "water-tank", "title": "Water tower", "description": "A stone tank full of water. Break the wall and watch it flood.", "scene": "water_tank", "expected": "approved"}
