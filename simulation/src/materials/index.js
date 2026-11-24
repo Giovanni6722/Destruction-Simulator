@@ -19,7 +19,14 @@ export class Wood extends Solid {
   static ignitionDirection = 'down';
   static burnRate = 80;
   static flameLifetime = 12;
-  static flameChance = 0.35;
+  static flameChance = 0.55;
+  static flameBursts = 2;
+  static flameBurstInterval = 4;
+
+  constructor() {
+    super();
+    this.flameBurstCooldown = 0;
+  }
 }
 
 export class Metal extends Solid {
@@ -396,6 +403,10 @@ export class Fire extends FireCategory {
       if (fuel.type !== 'wood') continue;
       const flameLifetime = fuel.constructor.flameLifetime;
       const flameChance = fuel.constructor.flameChance;
+      if (fuel.flameBurstCooldown > 0) {
+        fuel.flameBurstCooldown--;
+        continue;
+      }
       if (world.random() >= flameChance) continue;
 
       const emptyNeighbors = neighbors
@@ -405,6 +416,7 @@ export class Fire extends FireCategory {
 
       const flameCell = emptyNeighbors[Math.floor(world.random() * emptyNeighbors.length)];
       world.set(flameCell.x, flameCell.y, new Fire(flameLifetime, 'wood'));
+      fuel.flameBurstCooldown = fuel.constructor.flameBurstInterval;
     }
 
     for (const target of fuels.filter(({ fuel }) => fuel.ignitionMode !== 'focused')) {

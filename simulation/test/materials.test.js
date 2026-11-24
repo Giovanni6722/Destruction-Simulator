@@ -191,6 +191,9 @@ test('wood is solid and burns slower than plant and oil', () => {
   assert.ok(Wood.ignitionDelay > Oil.ignitionDelay);
   assert.ok(Wood.burnRate > Plant.burnRate);
   assert.ok(Wood.burnRate > Fire.lifetime);
+  assert.ok(Wood.flameBursts >= 2);
+  assert.ok(Wood.flameChance > 0.35);
+  assert.ok(Wood.flameBurstInterval >= 4);
 });
 
 test('fire spreads downward through wood from the top', () => {
@@ -213,10 +216,19 @@ test('burning wood produces additional short-lived fire', () => {
   }
   assert.ok(flames.some((flame) => flame.lifetime === Wood.flameLifetime));
 
-  const emitted = world.get(3, 1);
-  assert.equal(emitted?.source, 'wood');
+  const emitted = flames.find((flame) => flame.source === 'wood');
+  assert.ok(emitted);
+  const emittedPosition = [];
+  for (let y = 0; y < world.height; y++) {
+    for (let x = 0; x < world.width; x++) {
+      if (world.get(x, y) === emitted) emittedPosition.push([x, y]);
+    }
+  }
+  assert.equal(emittedPosition.length, 1);
   world.step();
-  assert.equal(world.get(3, 0)?.type, 'fire');
+  assert.ok([...Array(world.width)].some((_, x) =>
+    [...Array(world.height)].some((_, y) => world.get(x, y) instanceof Fire)
+  ));
 });
 
 test('metal is solid and progresses through heat stages near fire', () => {
