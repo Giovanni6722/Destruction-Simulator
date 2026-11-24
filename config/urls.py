@@ -18,6 +18,7 @@ from django.conf import settings
 from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import path, include
+from django.views.generic import RedirectView
 
 
 def health(request):
@@ -26,6 +27,7 @@ def health(request):
 
 
 urlpatterns = [
+    path('', RedirectView.as_view(url='/static/frontend/index.html')),
     path('admin/', admin.site.urls),
     path('health/', health, name='health'),
     path('api/accounts/', include('accounts.urls')),

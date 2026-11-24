@@ -30,6 +30,8 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 # Render sets these automatically on its servers
 if os.environ.get('RENDER_EXTERNAL_HOSTNAME'):
     ALLOWED_HOSTS.append(os.environ['RENDER_EXTERNAL_HOSTNAME'])
+    # Render terminates HTTPS, so Django sees http; trust the page's https origin for CSRF
+    CSRF_TRUSTED_ORIGINS = ['https://' + os.environ['RENDER_EXTERNAL_HOSTNAME']]
 GIT_COMMIT = os.environ.get('RENDER_GIT_COMMIT', 'local')
 
 
@@ -139,6 +141,12 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+# Serve the browser app from Django too, so on Render the page and /api/ share one origin.
+# The prefixes keep main.js's '../../simulation/src/...' imports resolving.
+STATICFILES_DIRS = [
+    ('frontend', BASE_DIR / 'frontend'),
+    ('simulation/src', BASE_DIR / 'simulation' / 'src'),
+]
 STORAGES = {
     'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
     'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'},
