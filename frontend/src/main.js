@@ -2,6 +2,7 @@ import { World } from '../../simulation/src/World.js';
 import { MATERIALS, createPixel } from '../../simulation/src/materials/index.js';
 import { ERASE, paintAt, paintLine } from './brush.js';
 import { createRenderer } from './renderer.js';
+import { setupGallery } from './gallery.js';
 
 const WIDTH = 120;
 const HEIGHT = 90;
@@ -34,6 +35,7 @@ for (const [type, { color }] of Object.entries(MATERIALS)) {
   $('materials').append(button);
 }
 $('erase').onclick = () => selectMaterial(ERASE);
+setupGallery(world, WIDTH, HEIGHT, createPixel);
 
 // Undo: a snapshot is a plain array with one material type (or null) per cell.
 function pushUndo() {
