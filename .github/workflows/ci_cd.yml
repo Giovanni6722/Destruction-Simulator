@@ -129,7 +129,7 @@ jobs:
         env:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           PYTHONUNBUFFERED: "1"
-        run: python -m evals.run
+        run: python -m evals.run --runs 2
 
       - name: Show results on the run page
         if: always()
