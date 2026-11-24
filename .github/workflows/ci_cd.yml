@@ -111,6 +111,7 @@ jobs:
     needs: test
     if: github.event_name == 'pull_request' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -127,6 +128,7 @@ jobs:
       - name: Run evaluation suite
         env:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          PYTHONUNBUFFERED: "1"
         run: python -m evals.run
 
       - name: Show results on the run page
