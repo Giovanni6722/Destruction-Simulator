@@ -50,6 +50,8 @@
               <button id="undo" disabled>Undo</button>
               <button id="erase" aria-pressed="false">Erase</button>
               <button id="clear">Clear</button>
+              <button id="post-build" class="gold">Post Build</button>
+              <button id="browse-builds">Browse Builds</button>
             </div>
           </section>
           <div class="screen">
@@ -62,6 +64,32 @@
         </div>
       </div>
     </main>
+    <dialog id="post-dialog" class="panel" aria-labelledby="post-heading">
+      <h2 id="post-heading">Post your build</h2>
+      <form id="post-form">
+        <fieldset id="login-fields" hidden disabled>
+          <legend>Log in to post (or make an account)</legend>
+          <label>Username <input name="username" autocomplete="username" required /></label>
+          <label>Password <input name="password" type="password" autocomplete="current-password" required /></label>
+          <label>Email (new accounts only) <input name="email" type="email" autocomplete="email" /></label>
+          <button type="submit" id="register">Register &amp; post</button>
+        </fieldset>
+        <label>Title <input name="title" maxlength="100" required /></label>
+        <label>Description <textarea name="description" rows="3" maxlength="500"></textarea></label>
+        <p id="post-message" class="message" role="status" aria-live="polite"></p>
+        <div class="toolbar">
+          <button type="submit" id="post-submit" class="gold">Post</button>
+          <button type="button" data-close>Close</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="gallery-dialog" class="panel" aria-labelledby="gallery-heading">
+      <h2 id="gallery-heading">Builds gallery</h2>
+      <div>
+        <ul id="gallery-list"></ul>
+        <button type="button" data-close>Close</button>
+      </div>
+    </dialog>
     <script type="module" src="src/main.js"></script>
   </body>
 </html>
