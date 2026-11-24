@@ -8,6 +8,197 @@ export class Stone extends Solid {
   static density = 100;
 }
 
+export class Wood extends Solid {
+  static type = 'wood';
+  static symbol = 'd';
+  static color = '#8b5a2b';
+  static density = 100;
+  static flammable = true;
+  static ignitionDelay = 8;
+  static ignitionMode = 'focused';
+  static ignitionDirection = 'down';
+  static burnRate = 80;
+  static flameLifetime = 12;
+  static flameChance = 0.35;
+}
+
+export class Metal extends Solid {
+  static type = 'metal';
+  static symbol = 'm';
+  static color = '#a3a3a3';
+  static density = 100;
+  static maxHeatLevel = 3;
+  static rustThreshold = 60;
+  static directHeatTicks = 4;
+  static spreadHeatTicks = 8;
+  static naturalCoolTicks = 60;
+  static waterCoolTicks = 24;
+  static boilTicks = 8;
+
+  constructor() {
+    super();
+    this.heatLevel = 0;
+    this.rustTicks = 0;
+    this.heatTicks = 0;
+    this.coolTicks = 0;
+    this.heatSourceDistance = 0;
+    this.heatSourceTick = -1;
+    this.boilTicks = 0;
+  }
+
+  get color() {
+    if (this.heatLevel >= 3) return '#ff1a1a';
+    if (this.heatLevel === 2) return '#ef5a32';
+    if (this.heatLevel === 1) return '#c97a45';
+    if (this.rustTicks >= Metal.rustThreshold * 3) return '#7a3f20';
+    if (this.rustTicks >= Metal.rustThreshold * 2) return '#955a32';
+    if (this.rustTicks >= Metal.rustThreshold) return '#ad7a52';
+    return this._color;
+  }
+
+  get isHot() { return this.heatLevel >= Metal.maxHeatLevel; }
+
+  heat(amount = 1) {
+    this.heatLevel = Math.min(Metal.maxHeatLevel, this.heatLevel + amount);
+  }
+
+  cool(amount = 1) {
+    this.heatLevel = Math.max(0, this.heatLevel - amount);
+    this.heatTicks = 0;
+    if (this.heatLevel === 0) {
+      this.heatSourceDistance = 0;
+      this.heatSourceTick = -1;
+    }
+  }
+
+  receiveHeat(world, amount = 1, heatSourceDistance = 1) {
+    if (this.heatLevel >= Metal.maxHeatLevel) {
+      this.heatSourceDistance = heatSourceDistance;
+      this.heatSourceTick = world.tick;
+      return;
+    }
+    this.heatTicks += amount;
+    if (this.heatTicks < Metal.directHeatTicks) return;
+    this.heat();
+    this.heatSourceDistance = heatSourceDistance;
+    this.heatSourceTick = world.tick;
+    this.heatTicks = 0;
+  }
+
+  update(x, y, world) {
+    const neighbors = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+    let inWater = false;
+    let hasHeatSource = false;
+
+    for (const [dx, dy] of neighbors) {
+      if (world.get(x + dx, y + dy)?.type === 'water') {
+        inWater = true;
+        break;
+      }
+    }
+
+    if (inWater) {
+      for (const [dx, dy] of neighbors) {
+        const neighbor = world.get(x + dx, y + dy);
+        if (neighbor?.type === 'fire') {
+          hasHeatSource = true;
+          this.receiveHeat(world);
+          break;
+        }
+      }
+
+      if (!hasHeatSource) {
+        this.coolTicks++;
+        if (this.coolTicks >= Metal.waterCoolTicks) {
+          this.cool(1);
+          this.coolTicks = 0;
+          this.heatTicks = 0;
+        }
+      } else {
+        this.coolTicks = 0;
+      }
+      this.rustTicks++;
+
+      if (this.heatLevel >= 2) {
+        this.boilTicks++;
+        if (this.boilTicks >= Metal.boilTicks) {
+          const waterNeighbors = neighbors
+            .map(([dx, dy]) => ({ x: x + dx, y: y + dy }))
+            .filter(({ x: waterX, y: waterY }) => world.get(waterX, waterY)?.type === 'water');
+          if (waterNeighbors.length > 0) {
+            const target = waterNeighbors[Math.floor(world.random() * waterNeighbors.length)];
+            world.set(target.x, target.y, new Steam());
+          }
+          this.boilTicks = 0;
+        }
+      } else {
+        this.boilTicks = 0;
+      }
+    } else {
+      for (const [dx, dy] of neighbors) {
+        const neighbor = world.get(x + dx, y + dy);
+        if (neighbor?.type === 'fire') {
+          hasHeatSource = true;
+          this.receiveHeat(world);
+          break;
+        }
+      }
+    }
+
+    const activeDistance = world.metalHeatSnapshot?.get(`${x},${y}`)?.activeHeatDistance ?? 0;
+    if (!inWater && activeDistance > 0) hasHeatSource = true;
+
+    if (this.heatLevel < Metal.maxHeatLevel) {
+      for (const [dx, dy] of neighbors) {
+        const neighbor = world.get(x + dx, y + dy);
+        if (neighbor?.type !== 'metal') continue;
+        const neighborSnapshot = world.metalHeatSnapshot?.get(`${x + dx},${y + dy}`);
+        const snapshotLevel = neighborSnapshot?.heatLevel ?? neighbor.heatLevel;
+        const neighborDistance = neighborSnapshot?.activeHeatDistance ?? 0;
+        const selfDistance = activeDistance;
+        if (snapshotLevel <= this.heatLevel) continue;
+        if (neighborDistance === 0) continue;
+        if (neighborDistance >= selfDistance) continue;
+        this.heatTicks++;
+        if (this.heatTicks >= Metal.spreadHeatTicks) {
+          this.heat();
+          this.heatSourceDistance = neighborDistance === 0 ? 0 : neighborDistance + 1;
+          this.heatSourceTick = world.tick;
+          hasHeatSource = true;
+          this.heatTicks = 0;
+        }
+        break;
+      }
+    }
+
+    if (!inWater && this.heatLevel > 0 && hasHeatSource) {
+      this.coolTicks = 0;
+    } else if (!inWater && this.heatLevel > 0) {
+      this.coolTicks++;
+      const coolingDepth = world.metalHeatSnapshot?.get(`${x},${y}`)?.coolingDepth ?? 1;
+      const coolingDelay = Metal.naturalCoolTicks * coolingDepth;
+      if (this.coolTicks >= coolingDelay) {
+        this.cool();
+        this.coolTicks = 0;
+      }
+    }
+
+    if (!this.isHot) return;
+
+    for (const [dx, dy] of neighbors) {
+      const target = world.get(x + dx, y + dy);
+      if (!target?.flammable || target.type === 'metal') continue;
+      if (target.lastIgnitionTick !== world.tick) {
+        target.ignitionTicks++;
+        target.lastIgnitionTick = world.tick;
+      }
+      if (target.ignitionTicks >= target.ignitionDelay) {
+        world.set(x + dx, y + dy, new Fire(target.burnRate ?? Fire.lifetime));
+      }
+    }
+  }
+}
+
 export class Sand extends Powder {
   static type = 'sand';
   static symbol = 's';
@@ -163,6 +354,11 @@ export class Fire extends FireCategory {
   static density = 0;
   static lifetime = 50;
 
+  constructor(lifetime, source = null) {
+    super(lifetime);
+    this.source = source;
+  }
+
   canDisplace(other, rising = false) {
     if (other?.flammable) return false;
     return super.canDisplace(other, rising);
@@ -170,6 +366,7 @@ export class Fire extends FireCategory {
 
   update(x, y, world) {
     const neighbors = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+
     for (const [dx, dy] of neighbors) {
       const waterX = x + dx;
       const waterY = y + dy;
@@ -194,6 +391,22 @@ export class Fire extends FireCategory {
       return;
     }
 
+    for (const target of fuels) {
+      const { fuel } = target;
+      if (fuel.type !== 'wood') continue;
+      const flameLifetime = fuel.constructor.flameLifetime;
+      const flameChance = fuel.constructor.flameChance;
+      if (world.random() >= flameChance) continue;
+
+      const emptyNeighbors = neighbors
+        .map(([dx, dy]) => ({ x: target.x + dx, y: target.y + dy }))
+        .filter(({ x: flameX, y: flameY }) => world.isEmpty(flameX, flameY));
+      if (emptyNeighbors.length === 0) continue;
+
+      const flameCell = emptyNeighbors[Math.floor(world.random() * emptyNeighbors.length)];
+      world.set(flameCell.x, flameCell.y, new Fire(flameLifetime, 'wood'));
+    }
+
     for (const target of fuels.filter(({ fuel }) => fuel.ignitionMode !== 'focused')) {
       const { fuel } = target;
       if (fuel.lastIgnitionTick !== world.tick) {
@@ -211,7 +424,14 @@ export class Fire extends FireCategory {
       return;
     }
 
-    const target = focusedFuels[Math.floor(world.random() * focusedFuels.length)];
+    let candidates = focusedFuels;
+    const directionalFuels = focusedFuels.filter(({ fuel }) => fuel.ignitionDirection === 'down');
+    if (directionalFuels.length > 0) {
+      const below = directionalFuels.filter(({ y: fuelY }) => fuelY === y + 1);
+      const sideways = directionalFuels.filter(({ y: fuelY }) => fuelY === y);
+      candidates = below.length > 0 ? below : (sideways.length > 0 ? sideways : directionalFuels);
+    }
+    const target = candidates[Math.floor(world.random() * candidates.length)];
     const { fuel } = target;
     if (fuel.lastIgnitionTick !== world.tick) {
       fuel.ignitionTicks++;
@@ -222,13 +442,16 @@ export class Fire extends FireCategory {
       return;
     }
 
-    // Keep heating the selected fuel until it catches, rather than igniting a wall at once.
+    // Keep heating focused fuel, while short-lived flames produced by wood can still rise.
+    if (this.source === 'wood') super.update(x, y, world);
   }
 }
 
 /** Every placeable material, keyed by type. New materials must be added here. */
 export const MATERIALS = {
   stone: Stone,
+  wood: Wood,
+  metal: Metal,
   sand: Sand,
   water: Water,
   plant: Plant,
