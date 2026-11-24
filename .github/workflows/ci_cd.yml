@@ -112,27 +112,46 @@ jobs:
     if: github.event_name == 'pull_request' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    concurrency: # a newer push to the PR cancels the older run, saving Groq quota
+      group: eval-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # the PR merge commit and its base parent
+
+      - name: Check whether moderation changed
+        id: changes
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ] \
+            || git diff --name-only HEAD^1 HEAD | grep -qE '^(creations/moderation\.py|prompts/|evals/)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No changes to moderation.py, prompts/ or evals/; skipping the eval."
+          fi
 
       - name: Set up Python
+        if: steps.changes.outputs.run == 'true'
         uses: actions/setup-python@v5
         with:
           python-version-file: .python-version
           cache: pip
 
       - name: Install Python dependencies
+        if: steps.changes.outputs.run == 'true'
         run: pip install -r requirements.txt
 
       - name: Run evaluation suite
+        if: steps.changes.outputs.run == 'true'
         env:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           PYTHONUNBUFFERED: "1"
-        run: python -m evals.run --runs 2
+          RUNS: ${{ github.event_name == 'schedule' && '1' || '2' }}
+        run: python -m evals.run --runs "$RUNS"
 
       - name: Show results on the run page
-        if: always()
+        if: always() && steps.changes.outputs.run == 'true'
         run: if [ -f evals/results/latest.md ]; then cat evals/results/latest.md >> "$GITHUB_STEP_SUMMARY"; fi
 
   deploy:

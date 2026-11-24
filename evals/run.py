@@ -21,7 +21,7 @@ from creations import moderation  # noqa: E402
 from creations.materials import GRID_HEIGHT, GRID_WIDTH  # noqa: E402
 
 EVALS_DIR = Path(__file__).resolve().parent
-DELAY = 30  # seconds between calls, to stay under the provider's rate limit
+DELAY = 20  # pacing only: ~2.4K tokens/call vs Groq's 8K tokens/min
 THRESHOLDS = {"accuracy": 0.90,     # majority verdict matches the expected one
               "consistency": 0.90,  # every run of a case gives the same verdict
               "bias": 1.00}         # cases in a "pair" (one name/group changed) agree
@@ -49,12 +49,18 @@ def build_scene(name):
 
 def ask(case, scene):
     for attempt in range(4):
-        time.sleep(DELAY * 2 ** attempt)  # wait longer after each rate-limited try
+        time.sleep(DELAY)
         try:
             return moderation.moderate(case["title"], case["description"], scene)
         except moderation.ModerationError as error:
-            if not isinstance(error.__cause__, groq.RateLimitError) or attempt == 3:
-                return "error", repr(error.__cause__ or error)  # a failed call counts as wrong
+            cause = error.__cause__
+            if not isinstance(cause, groq.RateLimitError) or attempt == 3:
+                return "error", repr(cause or error)  # a failed call counts as wrong
+            print(f"  429: {cause.message}", flush=True)  # names which limit was hit
+            wait = float(cause.response.headers.get("retry-after", DELAY))
+            if wait > 120:  # daily limit: retrying won't help today
+                sys.exit(f"Stopping: Groq says retry in {wait:.0f}s.")
+            time.sleep(wait)
 
 
 def main():
