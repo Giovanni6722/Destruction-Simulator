@@ -11,6 +11,8 @@ BACKGROUND = "#0b0d12"  # frontend/src/renderer.js
 # simulation/src/materials/index.js
 COLORS = {
     "stone": "#7a7a7a",
+    "wood": "#8b5a2b",
+    "metal": "#a3a3a3",
     "sand": "#e2c275",
     "water": "#3b82f6",
     "oil": "#a16207",

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { MATERIALS, createPixel, Fire, Oil, Plant, Sand, Stone, Steam, Water } from '../src/materials/index.js';
+import { MATERIALS, createPixel, Fire, Metal, Oil, Plant, Sand, Stone, Steam, Water, Wood } from '../src/materials/index.js';
 import { createRandom } from '../src/random.js';
 import { worldFromRows, rowsFromWorld, stepN } from './helpers.js';
 
@@ -16,6 +16,8 @@ test('every material has a unique type and symbol', () => {
 test('createPixel builds materials by type and rejects unknown ones', () => {
   assert.ok(createPixel('sand') instanceof Sand);
   assert.ok(createPixel('stone') instanceof Stone);
+  assert.ok(createPixel('wood') instanceof Wood);
+  assert.ok(createPixel('metal') instanceof Metal);
   assert.ok(createPixel('water') instanceof Water);
   assert.ok(createPixel('oil') instanceof Oil);
   assert.ok(createPixel('steam') instanceof Steam);
@@ -179,6 +181,245 @@ test('gaps in fire contact do not erase oil ignition progress', () => {
 test('oil has a deterministic ignition delay', () => {
   assert.equal(Oil.ignitionDelay, 2);
   assert.equal(new Oil().flammable, true);
+});
+
+test('wood is solid and burns slower than plant and oil', () => {
+  const wood = new Wood();
+  assert.equal(wood.isStatic, true);
+  assert.equal(wood.flammable, true);
+  assert.ok(Wood.ignitionDelay > Plant.ignitionDelay);
+  assert.ok(Wood.ignitionDelay > Oil.ignitionDelay);
+  assert.ok(Wood.burnRate > Plant.burnRate);
+  assert.ok(Wood.burnRate > Fire.lifetime);
+  assert.ok(Wood.flameBursts >= 2);
+  assert.ok(Wood.flameChance > 0.35);
+  assert.ok(Wood.flameBurstInterval >= 4);
+});
+
+test('fire spreads downward through wood from the top', () => {
+  const world = worldFromRows(['###', '#f#', '#d#', '#d#', '###']);
+  world.random = () => 0;
+  stepN(world, Wood.ignitionDelay);
+  assert.ok(world.get(1, 2) instanceof Fire);
+});
+
+test('burning wood produces additional short-lived fire', () => {
+  const world = worldFromRows(['.....', '#fd.#', '.....']);
+  world.random = () => 0;
+  world.step();
+
+  const flames = [];
+  for (let y = 0; y < world.height; y++) {
+    for (let x = 0; x < world.width; x++) {
+      if (world.get(x, y) instanceof Fire) flames.push(world.get(x, y));
+    }
+  }
+  assert.ok(flames.some((flame) => flame.lifetime === Wood.flameLifetime));
+
+  const emitted = flames.find((flame) => flame.source === 'wood');
+  assert.ok(emitted);
+  const emittedPosition = [];
+  for (let y = 0; y < world.height; y++) {
+    for (let x = 0; x < world.width; x++) {
+      if (world.get(x, y) === emitted) emittedPosition.push([x, y]);
+    }
+  }
+  assert.equal(emittedPosition.length, 1);
+  world.step();
+  assert.ok([...Array(world.width)].some((_, x) =>
+    [...Array(world.height)].some((_, y) => world.get(x, y) instanceof Fire)
+  ));
+});
+
+test('metal is solid and progresses through heat stages near fire', () => {
+  const metal = new Metal();
+  assert.equal(metal.isStatic, true);
+  assert.equal(metal.heatLevel, 0);
+  assert.equal(metal.color, Metal.color);
+
+  metal.heat();
+  assert.equal(metal.heatLevel, 1);
+  assert.equal(metal.color, '#c97a45');
+  metal.heat();
+  assert.equal(metal.heatLevel, 2);
+  assert.equal(metal.color, '#ef5a32');
+  metal.heat();
+  assert.equal(metal.heatLevel, 3);
+  assert.equal(metal.color, '#ff1a1a');
+});
+
+test('fire heats metal and heat spreads to adjacent metal', () => {
+  const world = worldFromRows(['f', 'm', 'm']);
+  stepN(world, Metal.directHeatTicks);
+  assert.equal(world.get(0, 1).heatLevel, 1);
+
+  stepN(world, Metal.spreadHeatTicks);
+  assert.equal(world.get(0, 2).heatLevel, 1);
+});
+
+test('metal cools naturally when it is no longer heated', () => {
+  const metal = new Metal();
+  metal.heat(Metal.maxHeatLevel);
+  const world = worldFromRows(['m']);
+  const worldMetal = world.get(0, 0);
+  worldMetal.heat(Metal.maxHeatLevel);
+
+  stepN(world, Metal.naturalCoolTicks);
+  assert.equal(worldMetal.heatLevel, 2);
+
+  stepN(world, Metal.naturalCoolTicks);
+  assert.equal(worldMetal.heatLevel, 1);
+
+  stepN(world, Metal.naturalCoolTicks);
+  assert.equal(worldMetal.heatLevel, 0);
+});
+
+test('metal block stops reheating after its fire source is removed', () => {
+  const world = worldFromRows(['f', 'm']);
+  stepN(world, 40);
+  assert.equal(world.get(0, 1).heatLevel, 3);
+
+  world.set(0, 0, null);
+  stepN(world, Metal.naturalCoolTicks * 6);
+  assert.equal(world.get(0, 1).heatLevel, 0);
+});
+
+test('holding fire against metal prevents natural cooling waves', () => {
+  const world = worldFromRows([
+    'm',
+    'f',
+  ]);
+  stepN(world, 40);
+  const metal = world.get(0, 0);
+  assert.equal(metal.heatLevel, 3);
+
+  for (let i = 0; i < Metal.naturalCoolTicks * 3; i++) {
+    if (world.get(0, 1)?.type !== 'fire') world.set(0, 1, new Fire());
+    world.step();
+  }
+  assert.equal(metal.heatLevel, 3);
+  assert.equal(metal.coolTicks, 0);
+});
+
+test('sustained fire can heat an entire larger metal block', () => {
+  const world = worldFromRows([
+    'mmm',
+    'mmm',
+    'fff',
+  ]);
+
+  for (let i = 0; i < 30; i++) {
+    for (let x = 0; x < world.width; x++) {
+      if (world.get(x, 2)?.type !== 'fire') world.set(x, 2, new Fire());
+    }
+    world.step();
+  }
+
+  for (let y = 0; y < 2; y++) {
+    for (let x = 0; x < world.width; x++) {
+      assert.ok(world.get(x, y).heatLevel > 0);
+    }
+  }
+});
+
+test('metal object cools from its outside inward', () => {
+  const world = worldFromRows([
+    'mmm',
+    'mmm',
+    'mmm',
+  ]);
+  for (let y = 0; y < 3; y++) {
+    for (let x = 0; x < 3; x++) {
+      world.get(x, y).heat(Metal.maxHeatLevel);
+    }
+  }
+
+  stepN(world, Metal.naturalCoolTicks * 4);
+  const outside = world.get(0, 0);
+  const center = world.get(1, 1);
+  assert.ok(outside.heatLevel < center.heatLevel);
+});
+
+test('maximum-temperature metal ignites adjacent flammable material', () => {
+  const world = worldFromRows(['m', 'o', '#']);
+  const metal = world.get(0, 0);
+  metal.heat(Metal.maxHeatLevel);
+  stepN(world, Oil.ignitionDelay);
+  assert.ok(world.get(0, 1) instanceof Fire);
+});
+
+test('hot metal boils adjacent water into steam', () => {
+  const world = worldFromRows(['m', 'w']);
+  world.random = () => 0;
+  const metal = world.get(0, 0);
+  metal.heat(Metal.maxHeatLevel);
+
+  stepN(world, Metal.boilTicks);
+  assert.ok(world.get(0, 1) instanceof Steam);
+  assert.equal(metal.heatLevel, 3);
+});
+
+test('metal heating beats water cooling while fire is applied', () => {
+  const world = worldFromRows(['f', 'm', 'w']);
+  world.random = () => 0;
+  stepN(world, 16);
+
+  assert.equal(world.get(0, 1).heatLevel, 3);
+  assert.ok(world.get(0, 2) instanceof Steam);
+});
+
+test('water in a metal container can boil under sustained external fire', () => {
+  const world = worldFromRows([
+    'ffffff',
+    'mmmmm',
+    'mwwwm',
+    'mwwwm',
+  ]);
+  world.random = () => 0;
+
+  for (let i = 0; i < 30; i++) {
+    for (let x = 0; x < world.width; x++) {
+      if (world.get(x, 0)?.type !== 'fire') world.set(x, 0, new Fire());
+    }
+    world.step();
+  }
+
+  assert.ok([...Array(world.width)].some((_, x) =>
+    [...Array(world.height)].some((_, y) => world.get(x, y) instanceof Steam)
+  ));
+});
+
+test('water cools metal and prolonged contact creates rust stages', () => {
+  const world = worldFromRows(['m', 'w', '#']);
+  const metal = world.get(0, 0);
+  stepN(world, Metal.waterCoolTicks);
+  assert.equal(metal.heatLevel, 0);
+  assert.equal(metal.rustTicks, Metal.waterCoolTicks);
+
+  stepN(world, Metal.rustThreshold - Metal.waterCoolTicks);
+  assert.equal(metal.rustTicks, Metal.rustThreshold);
+  assert.equal(metal.color, '#ad7a52');
+
+  stepN(world, Metal.rustThreshold);
+  assert.equal(metal.color, '#955a32');
+
+  stepN(world, Metal.rustThreshold);
+  assert.equal(metal.color, '#7a3f20');
+});
+
+test('rusted metal can still be heated by fire and adjacent metal', () => {
+  const world = worldFromRows([
+    'fm',
+  ]);
+  const rusted = world.get(1, 0);
+  rusted.rustTicks = Metal.rustThreshold * 3;
+
+  for (let i = 0; i < 300; i++) {
+    if (world.get(0, 0)?.type !== 'fire') world.set(0, 0, new Fire());
+    world.step();
+  }
+  assert.equal(rusted.heatLevel, Metal.maxHeatLevel);
+  assert.equal(rusted.color, '#ff1a1a');
 });
 
 test('fire lifetime is half its previous 100-tick duration', () => {

@@ -30,6 +30,8 @@ export class Pixel {
   static burnRate = null;
   /** Whether fire should focus on this material instead of igniting all neighbors. */
   static ignitionMode = 'all';
+  /** Preferred direction for a focused ignitable material: down, up, or random. */
+  static ignitionDirection = 'random';
 
   constructor() {
     this._color = variedColor(
@@ -52,6 +54,7 @@ export class Pixel {
   get ignitionDelay() { return this.constructor.ignitionDelay; }
   get burnRate() { return this.constructor.burnRate; }
   get ignitionMode() { return this.constructor.ignitionMode; }
+  get ignitionDirection() { return this.constructor.ignitionDirection; }
 
 
   canDisplace(other, rising = false) 
