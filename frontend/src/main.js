@@ -3,6 +3,7 @@ import { MATERIALS, createPixel } from '../../simulation/src/materials/index.js'
 import { ERASE, paintAt, paintLine } from './brush.js';
 import { createRenderer } from './renderer.js';
 import { setupGallery } from './gallery.js';
+import { addHoverEffect } from './hover.js';
 
 const WIDTH = 120;
 const HEIGHT = 90;
@@ -27,11 +28,15 @@ function selectMaterial(type) {
 // One button per material in the engine's registry, so new materials appear automatically.
 for (const [type, { color }] of Object.entries(MATERIALS)) {
   const button = document.createElement('button');
-  button.textContent = type[0].toUpperCase() + type.slice(1);
+  const label = document.createElement('span'); // the name, so hover effects can play over it
+  label.className = 'label';
+  label.textContent = type[0].toUpperCase() + type.slice(1);
+  button.append(label);
   button.style.setProperty('--c', color);
   button.dataset.material = type;
   button.setAttribute('aria-pressed', type === state.material);
   button.onclick = () => selectMaterial(type);
+  addHoverEffect(button, type);
   $('materials').append(button);
 }
 $('erase').onclick = () => selectMaterial(ERASE);
